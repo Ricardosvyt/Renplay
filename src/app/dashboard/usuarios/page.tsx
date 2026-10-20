@@ -101,6 +101,24 @@ function CheckBadgeIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+function EyeIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
 export default function UsuariosPage() {
   const [users, setUsers] = useState<DbUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,7 +137,21 @@ export default function UsuariosPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalError, setModalError] = useState("");
 
-  // Modal Gerenciamento de Verificação em 3 Etapas
+  // Modal Ficha Completa do Usuário (Edição de perfil, cargo, status, senha e 3 etapas)
+  const [selectedUserForSheet, setSelectedUserForSheet] = useState<DbUser | null>(null);
+  const [sheetUsername, setSheetUsername] = useState("");
+  const [sheetEmail, setSheetEmail] = useState("");
+  const [sheetRole, setSheetRole] = useState<DbUser["role"]>("usuario");
+  const [sheetStatus, setSheetStatus] = useState("ACTIVE");
+  const [sheetPassword, setSheetPassword] = useState("");
+  const [sheetShowPassword, setSheetShowPassword] = useState(false);
+  const [sheetEmailVerified, setSheetEmailVerified] = useState(true);
+  const [sheetIdentityVerified, setSheetIdentityVerified] = useState(false);
+  const [sheetTwoFactorVerified, setSheetTwoFactorVerified] = useState(false);
+  const [isSavingSheet, setIsSavingSheet] = useState(false);
+  const [sheetError, setSheetError] = useState("");
+
+  // Modal Gerenciamento Rápido de Verificação em 3 Etapas
   const [editingVerificationUser, setEditingVerificationUser] = useState<DbUser | null>(null);
   const [editEmailVerified, setEditEmailVerified] = useState(true);
   const [editIdentityVerified, setEditIdentityVerified] = useState(false);
@@ -202,12 +234,87 @@ export default function UsuariosPage() {
     }
   };
 
-  // Abrir modal de edição de verificação
+  // Abrir Ficha do Usuário para Edição Completa
+  const handleOpenUserSheet = (user: DbUser) => {
+    setSelectedUserForSheet(user);
+    setSheetUsername(user.username || "");
+    setSheetEmail(user.email || "");
+    setSheetRole(user.role || "usuario");
+    setSheetStatus(user.status || "ACTIVE");
+    setSheetPassword("");
+    setSheetShowPassword(false);
+    setSheetEmailVerified(user.email_verified ?? true);
+    setSheetIdentityVerified(user.identity_verified ?? false);
+    setSheetTwoFactorVerified(user.two_factor_verified ?? false);
+    setSheetError("");
+  };
+
+  // Salvar Alterações na Ficha do Usuário via PATCH
+  const handleSaveUserSheet = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedUserForSheet) return;
+
+    if (!sheetUsername.trim()) {
+      setSheetError("O nome de usuário não pode ficar vazio.");
+      return;
+    }
+    if (!sheetEmail.trim()) {
+      setSheetError("O e-mail não pode ficar vazio.");
+      return;
+    }
+
+    setIsSavingSheet(true);
+    setSheetError("");
+
+    try {
+      const calculatedLevel = (sheetEmailVerified ? 1 : 0) + (sheetIdentityVerified ? 1 : 0) + (sheetTwoFactorVerified ? 1 : 0);
+
+      const payload: Record<string, unknown> = {
+        id: selectedUserForSheet.id,
+        username: sheetUsername.trim(),
+        email: sheetEmail.trim(),
+        role: sheetRole,
+        status: sheetStatus,
+        verification_level: calculatedLevel,
+        email_verified: sheetEmailVerified,
+        identity_verified: sheetIdentityVerified,
+        two_factor_verified: sheetTwoFactorVerified,
+      };
+
+      if (sheetPassword.trim()) {
+        if (sheetPassword.trim().length < 6) {
+          setSheetError("A nova senha deve possuir pelo menos 6 caracteres.");
+          setIsSavingSheet(false);
+          return;
+        }
+        payload.password = sheetPassword.trim();
+      }
+
+      const res = await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setSheetError(data.error || "Erro ao salvar alterações da ficha.");
+        return;
+      }
+
+      showToast(`Ficha de "${sheetUsername}" salva com sucesso!`);
+      setSelectedUserForSheet(null);
+      fetchUsers();
+    } catch {
+      setSheetError("Falha de conexão com o banco de dados.");
+    } finally {
+      setIsSavingSheet(false);
+    }
+  };
+
+  // Abrir modal de edição de verificação (redireciona para a ficha completa)
   const handleOpenVerificationModal = (user: DbUser) => {
-    setEditingVerificationUser(user);
-    setEditEmailVerified(user.email_verified ?? true);
-    setEditIdentityVerified(user.identity_verified ?? false);
-    setEditTwoFactorVerified(user.two_factor_verified ?? false);
+    handleOpenUserSheet(user);
   };
 
   // Salvar etapas de verificação via PATCH
@@ -567,12 +674,23 @@ export default function UsuariosPage() {
                       return (
                         <tr key={u.id} className="hover:bg-zinc-800/30 transition-colors">
                           <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FFDE00]/20 to-amber-500/20 text-[#FFDE00] font-black flex items-center justify-center border border-[#FFDE00]/30 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenUserSheet(u)}
+                              className="flex items-center gap-3 text-left group cursor-pointer focus:outline-none"
+                              title="Clique para abrir a ficha completa do usuário"
+                            >
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#FFDE00]/20 to-amber-500/20 text-[#FFDE00] font-black flex items-center justify-center border border-[#FFDE00]/30 shrink-0 group-hover:scale-110 group-hover:border-[#FFDE00] transition-all shadow-[0_0_12px_rgba(255,222,0,0.15)]">
                                 {initial}
                               </div>
-                              <span className="font-bold text-white text-sm">{u.username}</span>
-                            </div>
+                              <div>
+                                <div className="font-bold text-white text-sm group-hover:text-[#FFDE00] transition-colors flex items-center gap-1.5">
+                                  <span>{u.username}</span>
+                                  <span className="text-[10px] text-zinc-500 group-hover:text-[#FFDE00] transition-colors">↗</span>
+                                </div>
+                                <span className="text-[10px] text-zinc-500 group-hover:text-amber-300">Abrir Ficha</span>
+                              </div>
+                            </button>
                           </td>
                           <td className="p-4 text-zinc-300 font-mono text-[11px]">{u.email}</td>
                           <td className="p-4">{getRoleBadge(u.role)}</td>
@@ -584,13 +702,14 @@ export default function UsuariosPage() {
                             </span>
                           </td>
                           <td className="p-4 text-zinc-400 text-xs font-mono">{dateStr}</td>
-                          <td className="p-4 text-right space-x-2">
+                          <td className="p-4 text-right space-x-2 whitespace-nowrap">
                             <button
-                              onClick={() => handleOpenVerificationModal(u)}
-                              className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#FFDE00] hover:bg-[#FFDE00]/10 border border-[#FFDE00]/30 transition-all cursor-pointer"
-                              title="Configurar Etapas de Verificação"
+                              onClick={() => handleOpenUserSheet(u)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-[#FFDE00] bg-[#FFDE00]/10 hover:bg-[#FFDE00]/20 border border-[#FFDE00]/30 transition-all cursor-pointer inline-flex items-center gap-1.5"
+                              title="Abrir ficha cadastral e editar dados"
                             >
-                              Verificação
+                              <UserIcon className="w-3.5 h-3.5 text-[#FFDE00]" />
+                              <span>Ficha</span>
                             </button>
                             <button
                               onClick={() => handleDeleteUser(u.id, u.username)}
@@ -611,6 +730,284 @@ export default function UsuariosPage() {
           </div>
         </div>
       </main>
+
+      {/* ============================================================== */}
+      {/* MODAL: FICHA DO USUÁRIO (EDIÇÃO CADASTRAL COMPLETA)           */}
+      {/* ============================================================== */}
+      {selectedUserForSheet && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
+          <div className="w-full max-w-2xl rounded-3xl p-6 sm:p-8 bg-[#12141D] border border-[#262B3D] shadow-[0_25px_80px_rgba(0,0,0,0.95)] relative space-y-6 my-8">
+            {/* Linha Neon Dourada no Topo */}
+            <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#FFDE00] to-transparent shadow-[0_2px_14px_rgba(255,222,0,0.7)]" />
+
+            {/* HEADER DA FICHA */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800/80">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#FFDE00]/25 to-amber-500/20 text-[#FFDE00] font-black text-xl flex items-center justify-center border-2 border-[#FFDE00]/40 shadow-[0_0_20px_rgba(255,222,0,0.25)] shrink-0">
+                  {selectedUserForSheet.username?.charAt(0).toUpperCase() || "U"}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-black text-white tracking-tight">
+                      Ficha do Usuário
+                    </h2>
+                    {getRoleBadge(sheetRole)}
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                    <span>ID: <code className="text-zinc-400 font-mono text-[11px]">{selectedUserForSheet.id.slice(0, 14)}...</code></span>
+                    <span>•</span>
+                    <span className="text-zinc-400 font-mono text-[11px]">
+                      Cadastro: {new Date(selectedUserForSheet.created_at).toLocaleDateString("pt-BR")}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedUserForSheet(null)}
+                className="self-start sm:self-center w-8 h-8 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center font-bold text-sm transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {sheetError && (
+              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold text-center">
+                {sheetError}
+              </div>
+            )}
+
+            {/* FORMULÁRIO DE EDIÇÃO CADASTRAL */}
+            <form onSubmit={handleSaveUserSheet} className="space-y-5">
+              {/* SEÇÃO 1: IDENTIFICAÇÃO BÁSICA */}
+              <div className="space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#FFDE00] flex items-center gap-2">
+                  <span>01. Identificação da Conta</span>
+                  <div className="h-px flex-1 bg-zinc-800" />
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5">
+                      Usuário *
+                    </label>
+                    <input
+                      type="text"
+                      value={sheetUsername}
+                      onChange={(e) => setSheetUsername(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#0C0D13] border border-[#202538] focus:border-[#FFDE00] text-xs text-white outline-none font-semibold transition-colors"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5">
+                      E-mail *
+                    </label>
+                    <input
+                      type="email"
+                      value={sheetEmail}
+                      onChange={(e) => setSheetEmail(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#0C0D13] border border-[#202538] focus:border-[#FFDE00] text-xs text-white outline-none font-mono transition-colors"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO 2: CARGO & STATUS */}
+              <div className="space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#FFDE00] flex items-center gap-2">
+                  <span>02. Cargo & Status</span>
+                  <div className="h-px flex-1 bg-zinc-800" />
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5">
+                      Função na Plataforma
+                    </label>
+                    <select
+                      value={sheetRole}
+                      onChange={(e) => setSheetRole(e.target.value as DbUser["role"])}
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#0C0D13] border border-[#202538] focus:border-[#FFDE00] text-xs text-white outline-none cursor-pointer"
+                    >
+                      <option value="admin">Administrador (Acesso Total)</option>
+                      <option value="dev">Desenvolvedor (Publicação & Builds)</option>
+                      <option value="moderador">Moderador (Comunidade & Moderação)</option>
+                      <option value="tradutor">Tradutor Oficial (Traduções)</option>
+                      <option value="vip">Membro VIP (Acesso Exclusivo)</option>
+                      <option value="usuario">Usuário Comum (Jogador)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5">
+                      Status da Conta
+                    </label>
+                    <select
+                      value={sheetStatus}
+                      onChange={(e) => setSheetStatus(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-[#0C0D13] border border-[#202538] focus:border-[#FFDE00] text-xs text-white outline-none cursor-pointer"
+                    >
+                      <option value="ACTIVE">✓ ACTIVE (Ativo e Liberado)</option>
+                      <option value="PENDING">⏱ PENDING (Pendente de Ativação)</option>
+                      <option value="SUSPENDED">🚫 SUSPENDED (Acesso Bloqueado)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* SEÇÃO 3: REDEFINIÇÃO DE SENHA */}
+              <div className="space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#FFDE00] flex items-center gap-2">
+                  <span>03. Redefinir Senha</span>
+                  <div className="h-px flex-1 bg-zinc-800" />
+                </span>
+
+                <div className="p-4 rounded-2xl bg-[#0C0D13] border border-zinc-800/80 space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    Nova Senha (Opcional)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={sheetShowPassword ? "text" : "password"}
+                      value={sheetPassword}
+                      onChange={(e) => setSheetPassword(e.target.value)}
+                      placeholder="Deixe em branco para manter a senha atual"
+                      className="w-full px-4 py-2.5 pr-11 rounded-xl bg-[#12141D] border border-[#202538] focus:border-[#FFDE00] text-xs text-white outline-none font-mono placeholder:text-zinc-600 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSheetShowPassword(!sheetShowPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-[#FFDE00] p-1 cursor-pointer transition-colors"
+                      title={sheetShowPassword ? "Ocultar senha" : "Ver senha"}
+                    >
+                      {sheetShowPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-zinc-500">
+                    * Se preenchida, será criptografada com algoritmo Bcrypt diretamente no PostgreSQL Neon.
+                  </p>
+                </div>
+              </div>
+
+              {/* SEÇÃO 4: VERIFICAÇÃO EM 3 ETAPAS */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-[#FFDE00] flex items-center gap-2">
+                    <span>04. Verificação em 3 Etapas</span>
+                    <div className="h-px w-24 bg-zinc-800" />
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-zinc-400">Nível da Conta:</span>
+                    <span className="text-xs font-black text-[#FFDE00]">
+                      {(sheetEmailVerified ? 1 : 0) + (sheetIdentityVerified ? 1 : 0) + (sheetTwoFactorVerified ? 1 : 0)}/3 Etapas
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Etapa 1 */}
+                  <label className={`flex flex-col gap-2 p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    sheetEmailVerified
+                      ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
+                      : "bg-[#0C0D13] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wide">1. E-mail</span>
+                      <input
+                        type="checkbox"
+                        checked={sheetEmailVerified}
+                        onChange={(e) => setSheetEmailVerified(e.target.checked)}
+                        className="w-4 h-4 accent-[#FFDE00] cursor-pointer"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 leading-snug">
+                      E-mail confirmado no sistema.
+                    </p>
+                  </label>
+
+                  {/* Etapa 2 */}
+                  <label className={`flex flex-col gap-2 p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    sheetIdentityVerified
+                      ? "bg-amber-500/10 border-amber-500/40 text-amber-300"
+                      : "bg-[#0C0D13] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wide">2. Identidade</span>
+                      <input
+                        type="checkbox"
+                        checked={sheetIdentityVerified}
+                        onChange={(e) => setSheetIdentityVerified(e.target.checked)}
+                        className="w-4 h-4 accent-[#FFDE00] cursor-pointer"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 leading-snug">
+                      Estúdio / Identidade validada.
+                    </p>
+                  </label>
+
+                  {/* Etapa 3 */}
+                  <label className={`flex flex-col gap-2 p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                    sheetTwoFactorVerified
+                      ? "bg-[#FFDE00]/10 border-[#FFDE00]/40 text-[#FFDE00]"
+                      : "bg-[#0C0D13] border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-wide">3. 2FA Ativo</span>
+                      <input
+                        type="checkbox"
+                        checked={sheetTwoFactorVerified}
+                        onChange={(e) => setSheetTwoFactorVerified(e.target.checked)}
+                        className="w-4 h-4 accent-[#FFDE00] cursor-pointer"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 leading-snug">
+                      Autenticação 2 fatores ativa.
+                    </p>
+                  </label>
+                </div>
+              </div>
+
+              {/* BOTÕES DE AÇÃO */}
+              <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedUserForSheet) {
+                      handleDeleteUser(selectedUserForSheet.id, selectedUserForSheet.username);
+                      setSelectedUserForSheet(null);
+                    }
+                  }}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs font-bold transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
+                >
+                  <TrashIcon />
+                  <span>Excluir Usuário</span>
+                </button>
+
+                <div className="w-full sm:w-auto flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUserForSheet(null)}
+                    className="px-4 py-2.5 rounded-xl border border-zinc-800 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingSheet}
+                    className="px-6 py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#ffe53b] text-black text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg disabled:opacity-50"
+                  >
+                    {isSavingSheet ? "Salvando Alterações..." : "Salvar Alterações na Ficha"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ============================================================== */}
       {/* MODAL: GERENCIAR VERIFICAÇÃO EM 3 ETAPAS                      */}

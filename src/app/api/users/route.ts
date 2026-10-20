@@ -114,11 +114,22 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH /api/users - Atualizar etapas de verificação da conta (Etapa 1, 2 e 3)
+// PATCH /api/users - Atualizar ficha/dados do usuário e etapas de verificação
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, verification_level, email_verified, identity_verified, two_factor_verified } = body;
+    const {
+      id,
+      username,
+      email,
+      role,
+      status,
+      password,
+      verification_level,
+      email_verified,
+      identity_verified,
+      two_factor_verified,
+    } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID do usuário não fornecido." }, { status: 400 });
@@ -135,22 +146,52 @@ export async function PATCH(request: NextRequest) {
       calculatedLevel = (email_verified ? 1 : 0) + (identity_verified ? 1 : 0) + (two_factor_verified ? 1 : 0);
     }
 
+    let passwordHash: string | null = null;
+    if (password && typeof password === "string" && password.trim().length >= 6) {
+      passwordHash = bcrypt.hashSync(password.trim(), 10);
+    }
+
     const updateQuery = `
       UPDATE rp_users
-      SET verification_level = COALESCE($2, verification_level),
-          email_verified = COALESCE($3, email_verified),
-          identity_verified = COALESCE($4, identity_verified),
-          two_factor_verified = COALESCE($5, two_factor_verified),
+      SET username = COALESCE($2, username),
+          email = COALESCE($3, email),
+          role = COALESCE($4, role),
+          status = COALESCE($5, status),
+          password_hash = COALESCE($6, password_hash),
+          verification_level = COALESCE($7, verification_level),
+          email_verified = COALESCE($8, email_verified),
+          identity_verified = COALESCE($9, identity_verified),
+          two_factor_verified = COALESCE($10, two_factor_verified),
           updated_at = NOW()
       WHERE id = $1
-      RETURNING id, username, email, role, status, verification_level, email_verified, identity_verified, two_factor_verified;
+      RETURNING id, username, email, role, status, verification_level, email_verified, identity_verified, two_factor_verified, created_at, updated_at;
     `;
 
-    const res = await p.query(updateQuery, [id, calculatedLevel, email_verified, identity_verified, two_factor_verified]);
+    const res = await p.query(updateQuery, [
+      id,
+      username?.trim() || null,
+      email?.trim() || null,
+      role?.trim()?.toLowerCase() || null,
+      status?.trim() || null,
+      passwordHash,
+      calculatedLevel !== undefined ? calculatedLevel : null,
+      email_verified !== undefined ? email_verified : null,
+      identity_verified !== undefined ? identity_verified : null,
+      two_factor_verified !== undefined ? two_factor_verified : null,
+    ]);
+
+    if (res.rows.length === 0) {
+      return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
+    }
+
     return NextResponse.json({ user: res.rows[0], success: true });
-  } catch (error) {
-    console.error("Erro ao atualizar verificação:", error);
-    return NextResponse.json({ error: "Falha ao atualizar verificação do usuário." }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("Erro ao atualizar usuário:", error);
+    const err = error as { code?: string };
+    if (err.code === "23505") {
+      return NextResponse.json({ error: "E-mail ou nome de usuário já em uso por outra conta." }, { status: 409 });
+    }
+    return NextResponse.json({ error: "Falha ao atualizar dados do usuário." }, { status: 500 });
   }
 }
 

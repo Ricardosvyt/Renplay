@@ -625,7 +625,16 @@ export default function DashboardPage() {
                     ) : (
                       users.map((u) => (
                         <tr key={u.id} className="hover:bg-zinc-800/30 transition-colors">
-                          <td className="p-4 font-bold text-white">{u.name}</td>
+                          <td className="p-4">
+                            <Link
+                              href="/dashboard/usuarios"
+                              className="font-bold text-white hover:text-[#FFDE00] transition-colors inline-flex items-center gap-1.5 group cursor-pointer"
+                              title="Clique para abrir a ficha do usuário no Painel Neon"
+                            >
+                              <span>{u.name}</span>
+                              <span className="text-[10px] text-zinc-500 group-hover:text-[#FFDE00] transition-colors">↗ Ficha</span>
+                            </Link>
+                          </td>
                           <td className="p-4 text-zinc-300 font-mono text-[11px]">{u.email}</td>
                           <td className="p-4">
                             {getRoleBadge(u.role)}
