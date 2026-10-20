@@ -26,9 +26,10 @@ export interface UserItem {
   id: string;
   name: string;
   email: string;
-  role: "ADMIN" | "DEVELOPER" | "MODERATOR" | "TRANSLATOR";
+  role: "ADMIN" | "DEVELOPER" | "MODERATOR" | "TRANSLATOR" | "VIP" | "USUARIO";
   status: "ACTIVE" | "PENDING";
   joinedDate: string;
+  verificationLevel?: number;
 }
 
 /* ============================================================== */
@@ -190,6 +191,31 @@ function getRoleBadge(role: string) {
   }
 }
 
+function getVerificationBadge(level: number = 1) {
+  if (level >= 3) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-amber-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>3/3 Verificado</span>
+      </span>
+    );
+  }
+  if (level === 2) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/30">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+        <span>2/3 Em Análise</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide bg-zinc-800/80 text-zinc-400 border border-zinc-700/60">
+      <span className="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+      <span>1/3 E-mail</span>
+    </span>
+  );
+}
+
 /* ============================================================== */
 /* COMPONENTE PRINCIPAL: DASHBOARD LIMPO E MODERNO                */
 /* ============================================================== */
@@ -210,13 +236,14 @@ export default function DashboardPage() {
       .then((data) => {
         if (data.users && Array.isArray(data.users)) {
           setUsers(
-            data.users.map((u: { id: string; username: string; email: string; role: string; status: string; created_at: string }) => ({
+            data.users.map((u: { id: string; username: string; email: string; role: string; status: string; created_at: string; verification_level?: number }) => ({
               id: u.id,
               name: u.username,
               email: u.email,
               role: (u.role.toUpperCase() as UserItem["role"]) || "MODERATOR",
               status: "ACTIVE",
               joinedDate: new Date(u.created_at).toLocaleDateString("pt-BR"),
+              verificationLevel: u.verification_level ?? 1,
             }))
           );
         }
@@ -579,6 +606,7 @@ export default function DashboardPage() {
                       <th className="p-4">Nome</th>
                       <th className="p-4">E-mail</th>
                       <th className="p-4">Função</th>
+                      <th className="p-4">Verificação (3 Etapas)</th>
                       <th className="p-4">Status</th>
                       <th className="p-4">Cadastrado em</th>
                     </tr>
@@ -586,7 +614,7 @@ export default function DashboardPage() {
                   <tbody className="divide-y divide-zinc-800/60 font-semibold">
                     {users.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-16 text-center text-zinc-500">
+                        <td colSpan={6} className="py-16 text-center text-zinc-500">
                           <div className="flex flex-col items-center justify-center gap-2.5">
                             <UsersIcon className="w-9 h-9 text-zinc-700 stroke-1" />
                             <p className="text-sm font-bold text-zinc-400">Nenhum membro cadastrado</p>
@@ -601,6 +629,9 @@ export default function DashboardPage() {
                           <td className="p-4 text-zinc-300 font-mono text-[11px]">{u.email}</td>
                           <td className="p-4">
                             {getRoleBadge(u.role)}
+                          </td>
+                          <td className="p-4">
+                            {getVerificationBadge(u.verificationLevel)}
                           </td>
                           <td className="p-4">
                             <span className="text-emerald-400 text-xs font-bold">✓ Ativo</span>
