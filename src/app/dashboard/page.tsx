@@ -103,39 +103,8 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Lista de Jogos do Catálogo
-  const [games, setGames] = useState<GameItem[]>([
-    {
-      id: "the-last-echo",
-      title: "The Last Echo — Rina's Story",
-      developer: "RenPlay Studios",
-      category: "Sci-Fi / Mistério",
-      genre: "Visual Novel",
-      version: "1.2.4",
-      engine: "Ren'Py 8.3",
-      adult: false,
-      coverUrl: "/Rina.png",
-      downloadUrl: "https://pixeldrain.com/u/theLastEcho12",
-      downloads: 18450,
-      status: "PUBLISHED",
-      lastUpdate: "Hoje às 10:45",
-    },
-    {
-      id: "so-much-to-love",
-      title: "So Much to Love",
-      developer: "ALDOR",
-      category: "Romance adulto",
-      genre: "Visual Novel",
-      version: "0.4.4B",
-      engine: "Ren'Py 8.1",
-      adult: true,
-      coverUrl: "/images/so-much-to-love-cover.jpg",
-      downloadUrl: "https://pixeldrain.com/u/4J1pu8YP",
-      downloads: 12480,
-      status: "PUBLISHED",
-      lastUpdate: "Ontem às 18:20",
-    },
-  ]);
+  // Lista de Jogos do Catálogo (Inicia vazia conforme solicitado)
+  const [games, setGames] = useState<GameItem[]>([]);
 
   // Lista de Membros da Equipe (Inicia vazia conforme solicitado)
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -279,9 +248,9 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { title: "Total de Jogos", val: games.length.toString(), desc: "Títulos cadastrados no launcher", color: "text-[#FFDE00]" },
-                  { title: "Downloads Totais", val: "30.930", desc: "Instalações solicitadas", color: "text-emerald-400" },
+                  { title: "Downloads Totais", val: games.reduce((acc, g) => acc + (g.downloads || 0), 0).toLocaleString(), desc: "Instalações solicitadas", color: "text-emerald-400" },
                   { title: "Equipe Ativa", val: users.length.toString(), desc: "Criadores e moderadores", color: "text-blue-400" },
-                  { title: "CDN Uptime", val: "99.98%", desc: "Pixeldrain e Cloudflare R2", color: "text-purple-400" },
+                  { title: "CDN Uptime", val: "100%", desc: "Pixeldrain e Cloudflare R2", color: "text-purple-400" },
                 ].map((kpi, idx) => (
                   <div key={idx} className="p-5 rounded-2xl bg-[#141a26] border border-zinc-800 space-y-1">
                     <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{kpi.title}</span>
@@ -305,30 +274,44 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {games.slice(0, 2).map((game) => (
-                    <div
-                      key={game.id}
-                      className="p-4 rounded-xl bg-[#0d111a] border border-zinc-800 flex gap-4 items-center"
+                {games.length === 0 ? (
+                  <div className="py-12 text-center text-zinc-500 w-full flex flex-col items-center justify-center gap-2">
+                    <GamepadIcon className="w-10 h-10 text-zinc-700 stroke-1" />
+                    <p className="text-sm font-bold text-zinc-400">Nenhum jogo no catálogo ainda</p>
+                    <p className="text-xs text-zinc-600">O catálogo está vazio. Cadastre uma nova visual novel para começar.</p>
+                    <Link
+                      href="/dashboard/publish"
+                      className="mt-3 text-xs font-bold px-4 py-2 rounded-xl bg-[#FFDE00] text-black hover:bg-[#ffe53b] transition-all cursor-pointer shadow-md"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={game.coverUrl}
-                        alt={game.title}
-                        className="w-20 h-24 object-cover rounded-lg shrink-0 shadow-md"
-                      />
-                      <div className="space-y-1 flex-1 min-w-0">
-                        <span className="text-[10px] font-bold uppercase text-amber-400 block">{game.developer}</span>
-                        <h4 className="font-bold text-sm truncate">{game.title}</h4>
-                        <div className="flex items-center gap-2 text-xs text-zinc-400">
-                          <span>v{game.version}</span>
-                          <span>•</span>
-                          <span>{game.downloads.toLocaleString()} downloads</span>
+                      + Publicar Primeiro Jogo
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {games.slice(0, 2).map((game) => (
+                      <div
+                        key={game.id}
+                        className="p-4 rounded-xl bg-[#0d111a] border border-zinc-800 flex gap-4 items-center"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={game.coverUrl}
+                          alt={game.title}
+                          className="w-20 h-24 object-cover rounded-lg shrink-0 shadow-md"
+                        />
+                        <div className="space-y-1 flex-1 min-w-0">
+                          <span className="text-[10px] font-bold uppercase text-amber-400 block">{game.developer}</span>
+                          <h4 className="font-bold text-sm truncate">{game.title}</h4>
+                          <div className="flex items-center gap-2 text-xs text-zinc-400">
+                            <span>v{game.version}</span>
+                            <span>•</span>
+                            <span>{game.downloads.toLocaleString()} downloads</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -387,8 +370,16 @@ export default function DashboardPage() {
                     <tbody className="divide-y divide-zinc-800/60 font-semibold">
                       {filteredGames.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-8 text-center text-zinc-400">
-                            Nenhum jogo encontrado com esse termo.
+                          <td colSpan={6} className="py-16 text-center text-zinc-500">
+                            <div className="flex flex-col items-center justify-center gap-2.5">
+                              <GamepadIcon className="w-9 h-9 text-zinc-700 stroke-1" />
+                              <p className="text-sm font-bold text-zinc-400">
+                                {searchQuery ? "Nenhum jogo encontrado com esse termo." : "Nenhum jogo cadastrado"}
+                              </p>
+                              <p className="text-xs text-zinc-600">
+                                {searchQuery ? "Tente buscar por outro nome ou gênero." : "O catálogo está vazio no momento."}
+                              </p>
+                            </div>
                           </td>
                         </tr>
                       ) : (
