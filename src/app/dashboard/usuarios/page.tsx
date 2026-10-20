@@ -205,49 +205,52 @@ export default function UsuariosPage() {
     }
   };
 
-  // Badges visuais por função
+  // Badges visuais profissionais por função
   const getRoleBadge = (role: string) => {
     switch (role.toLowerCase()) {
       case "admin":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-red-500/15 text-red-400 border border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-            <ShieldIcon className="w-3 h-3 text-red-400" />
-            <span>ADMIN</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-500/15 text-rose-300 border border-rose-500/30 shadow-[0_0_12px_rgba(244,63,94,0.2)]">
+            <ShieldIcon className="w-3.5 h-3.5 text-rose-400" />
+            <span>Administrador</span>
           </span>
         );
       case "dev":
+      case "developer":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-blue-500/15 text-blue-400 border border-blue-500/30">
-            <CodeIcon className="w-3 h-3 text-blue-400" />
-            <span>DEV</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-sky-500/15 text-sky-300 border border-sky-500/30 shadow-[0_0_12px_rgba(14,165,233,0.2)]">
+            <CodeIcon className="w-3.5 h-3.5 text-sky-400" />
+            <span>Desenvolvedor</span>
           </span>
         );
       case "tradutor":
+      case "translator":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-400/15 text-amber-300 border border-amber-400/30">
-            <GlobeIcon className="w-3 h-3 text-amber-300" />
-            <span>TRADUTOR</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+            <GlobeIcon className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Tradutor Oficial</span>
           </span>
         );
       case "moderador":
+      case "moderator":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-purple-500/15 text-purple-400 border border-purple-500/30">
-            <ShieldIcon className="w-3 h-3 text-purple-400" />
-            <span>MODERADOR</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
+            <ShieldIcon className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Moderador</span>
           </span>
         );
       case "vip":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-[#FFDE00]/15 text-[#FFDE00] border border-[#FFDE00]/40 shadow-[0_0_12px_rgba(255,222,0,0.25)]">
-            <CrownIcon className="w-3 h-3 text-[#FFDE00]" />
-            <span>VIP</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-[#FFDE00]/15 text-[#FFDE00] border border-[#FFDE00]/40 shadow-[0_0_15px_rgba(255,222,0,0.3)]">
+            <CrownIcon className="w-3.5 h-3.5 text-[#FFDE00]" />
+            <span>Membro VIP</span>
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-zinc-800 text-zinc-300 border border-zinc-700">
-            <UserIcon className="w-3 h-3 text-zinc-400" />
-            <span>USUÁRIO</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 border border-zinc-700">
+            <UserIcon className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Usuário</span>
           </span>
         );
     }

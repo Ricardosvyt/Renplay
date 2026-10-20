@@ -95,6 +95,101 @@ function SearchIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+function ShieldIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+
+function CodeIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </svg>
+  );
+}
+
+function GlobeIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function CrownIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z" />
+    </svg>
+  );
+}
+
+function UserIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function getRoleBadge(role: string) {
+  const r = (role || "").toLowerCase();
+  switch (r) {
+    case "admin":
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/15 text-rose-300 border border-rose-500/30 shadow-[0_0_12px_rgba(244,63,94,0.2)]">
+          <ShieldIcon className="w-3 h-3 text-rose-400" />
+          <span>Administrador</span>
+        </span>
+      );
+    case "dev":
+    case "developer":
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-500/15 text-sky-300 border border-sky-500/30 shadow-[0_0_12px_rgba(14,165,233,0.2)]">
+          <CodeIcon className="w-3 h-3 text-sky-400" />
+          <span>Desenvolvedor</span>
+        </span>
+      );
+    case "tradutor":
+    case "translator":
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+          <GlobeIcon className="w-3 h-3 text-emerald-400" />
+          <span>Tradutor Oficial</span>
+        </span>
+      );
+    case "moderador":
+    case "moderator":
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
+          <ShieldIcon className="w-3 h-3 text-indigo-400" />
+          <span>Moderador</span>
+        </span>
+      );
+    case "vip":
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFDE00]/15 text-[#FFDE00] border border-[#FFDE00]/40 shadow-[0_0_15px_rgba(255,222,0,0.3)]">
+          <CrownIcon className="w-3 h-3 text-[#FFDE00]" />
+          <span>Membro VIP</span>
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 border border-zinc-700">
+          <UserIcon className="w-3 h-3 text-zinc-400" />
+          <span>Usuário</span>
+        </span>
+      );
+  }
+}
+
 /* ============================================================== */
 /* COMPONENTE PRINCIPAL: DASHBOARD LIMPO E MODERNO                */
 /* ============================================================== */
@@ -505,9 +600,7 @@ export default function DashboardPage() {
                           <td className="p-4 font-bold text-white">{u.name}</td>
                           <td className="p-4 text-zinc-300 font-mono text-[11px]">{u.email}</td>
                           <td className="p-4">
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-[#FFDE00]/15 text-[#FFDE00] border border-[#FFDE00]/30">
-                              {u.role}
-                            </span>
+                            {getRoleBadge(u.role)}
                           </td>
                           <td className="p-4">
                             <span className="text-emerald-400 text-xs font-bold">✓ Ativo</span>
