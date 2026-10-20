@@ -1,0 +1,48 @@
+{
+  "games": [
+    {
+      "id": "so-much-to-love",
+      "name": "So Much to Love",
+      "version": "0.4.4B",
+      "developer": "ALDOR",
+      "description": "Visual novel adulta de escolhas e relacionamentos. Tradução em português disponibilizada por Thatty Hentai.",
+      "engine": "Ren'Py",
+      "platforms": ["Windows"],
+      "languages": ["Português", "Inglês"],
+      "adult": true,
+      "coverImage": "/images/so-much-to-love-cover.jpg",
+      "screenshots": ["/images/so-much-to-love-01.jpg", "/images/so-much-to-love-02.webp", "/images/so-much-to-love-03.webp"],
+      "sourceUrl": "https://lapkjogos.com/so-much-to-love/",
+      "downloadUrl": "https://pixeldrain.com/u/4J1pu8YP",
+      "downloadMirrors": [
+        { "id": "mirror-1", "name": "Pixeldrain (Primário)", "url": "https://pixeldrain.com/u/4J1pu8YP", "priority": 1, "provider": "Pixeldrain", "status": "ONLINE" },
+        { "id": "mirror-2", "name": "Cloudflare R2 CDN (Secundário)", "url": "https://pub-renplay.r2.dev/builds/So_Much_to_Love-0.4.4B.rar", "priority": 2, "provider": "Cloudflare R2", "status": "ONLINE" },
+        { "id": "mirror-3", "name": "Google Drive (Espelho Backup)", "url": "https://drive.google.com/uc?export=download&id=1a2B3c4D5e6F7g8H9i0J", "priority": 3, "provider": "Google Drive", "status": "BACKUP" }
+      ],
+      "archiveType": "rar",
+      "fileName": "So_Much_to_Love-0.4.4B by Thatty.rar",
+      "sizeLabel": "442 MB",
+      "sizeBytes": 441833599,
+      "sha256": "f268bdc8acefbe5c1c119028159ee47950b1b3861d9d56c264b496c33ba5879b",
+      "genre": "Visual novel",
+      "category": "Romance adulto",
+      "publishedAt": "2025-02-14",
+      "updatedAt": "2025-02-14",
+      "translator": "Thatty Hentai",
+      "fullDescription": "Uma visual novel adulta centrada em escolhas, relacionamentos e consequências. Explore conversas, descubra novas rotas e acompanhe o desenvolvimento dos personagens.",
+      "story": "A história acompanha encontros e decisões que mudam o rumo da narrativa.",
+      "gameplay": "Escolha respostas, navegue pelas cenas e desbloqueie caminhos diferentes conforme suas decisões.",
+      "rating": 4.7,
+      "reviewCount": 28,
+      "downloads": 1248,
+      "views": 6380,
+      "reviews": [
+        { "user": "LuaVioleta", "rating": 5, "date": "2025-02-20", "text": "Boa atmosfera e escolhas interessantes." },
+        { "user": "RenPlay", "rating": 4, "date": "2025-02-18", "text": "A tradução ajuda bastante na experiência." }
+      ],
+      "updates": [
+        { "date": "2025-02-14", "version": "0.4.4B", "title": "Atualização de conteúdo", "improvements": "Novas cenas e ajustes de equilíbrio.", "fixes": "Correções de pequenos bugs.", "translation": "Revisão da tradução em português." }
+      ]
+    }
+  ]
+}

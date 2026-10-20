@@ -1,0 +1,381 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --epic-bg: #FFFFFF;
+    --epic-surface: #F8F8F9;
+    --epic-card: #FFFFFF;
+    --epic-border: #E5E7EB;
+    --epic-text-main: #121212;
+    --epic-text-muted: #6B7280;
+    --epic-yellow: #FFD200;
+    --epic-yellow-hover: #FFE033;
+    --epic-accent: #0074E4;
+  }
+
+  .dark {
+    --epic-bg: #121212;
+    --epic-surface: #18181C;
+    --epic-card: #202024;
+    --epic-border: #2A2A30;
+    --epic-text-main: #FFFFFF;
+    --epic-text-muted: #9CA3AF;
+    --epic-yellow: #FFDE00;
+    --epic-yellow-hover: #FFE633;
+    --epic-accent: #0074E4;
+  }
+}
+
+/* ============================================================== */
+/* KEYFRAMES & ANIMAÇÕES PROFISSIONAIS                            */
+/* ============================================================== */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes beamScan {
+  0% {
+    top: -100%;
+  }
+  100% {
+    top: 200%;
+  }
+}
+
+/* Classes utilitárias de Animação */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes animeCharacterFloat {
+  0% {
+    transform: translate3d(0, 0px, 0) scale(1.02) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -26px, 0) scale(1.045) rotate(0.6deg);
+  }
+  100% {
+    transform: translate3d(0, 0px, 0) scale(1.02) rotate(0deg);
+  }
+}
+
+@keyframes animeBreathingGlow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1) translateY(-14px);
+  }
+}
+
+.animate-character-float {
+  animation: animeCharacterFloat 3.8s ease-in-out infinite !important;
+  will-change: transform;
+}
+
+.animate-character-glow {
+  animation: animeBreathingGlow 6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes rinaLiveFloat {
+  0% {
+    transform: translate3d(0, 10px, 0) scale(1.01) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0) scale(1.035) rotate(0.4deg);
+  }
+  100% {
+    transform: translate3d(0, 10px, 0) scale(1.01) rotate(0deg);
+  }
+}
+
+.rina-floating-element {
+  animation: rinaLiveFloat 4.2s ease-in-out infinite !important;
+  will-change: transform;
+}
+
+@keyframes cardLiveFloat {
+  0%, 100% {
+    transform: translate3d(0, 0px, 0);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
+.card-floating-element {
+  animation: cardLiveFloat 4.6s ease-in-out infinite !important;
+  will-change: transform;
+}
+
+@keyframes slowSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes reverseSpin {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes ambientDrift {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(25px, -18px) scale(1.08);
+  }
+  66% {
+    transform: translate(-18px, 20px) scale(0.96);
+  }
+}
+
+@keyframes emberRise {
+  0% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  80% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(-160px) translateX(18px);
+    opacity: 0;
+  }
+}
+
+@keyframes rayScan {
+  0%, 100% {
+    opacity: 0.2;
+    transform: translateY(-20px) rotate(-15deg);
+  }
+  50% {
+    opacity: 0.45;
+    transform: translateY(20px) rotate(-12deg);
+  }
+}
+
+.animate-slow-spin {
+  animation: slowSpin 50s linear infinite;
+  will-change: transform;
+}
+
+.animate-reverse-spin {
+  animation: reverseSpin 38s linear infinite;
+  will-change: transform;
+}
+
+.animate-ambient-drift-1 {
+  animation: ambientDrift 14s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-ambient-drift-2 {
+  animation: ambientDrift 18s ease-in-out infinite reverse;
+  will-change: transform;
+}
+
+.animate-ember-1 {
+  animation: emberRise 6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-ember-2 {
+  animation: emberRise 8s ease-in-out infinite 2s;
+  will-change: transform, opacity;
+}
+
+.animate-ember-3 {
+  animation: emberRise 7s ease-in-out infinite 4s;
+  will-change: transform, opacity;
+}
+
+.animate-ember-4 {
+  animation: emberRise 9s ease-in-out infinite 1s;
+  will-change: transform, opacity;
+}
+
+.animate-ray-scan {
+  animation: rayScan 8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-character-float,
+  .animate-character-glow,
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-slow-spin,
+  .animate-reverse-spin,
+  .animate-ambient-drift-1,
+  .animate-ambient-drift-2,
+  .animate-ember-1,
+  .animate-ember-2,
+  .animate-ember-3,
+  .animate-ember-4,
+  .animate-ray-scan {
+    animation: none !important;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.shimmer-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+.diagonal-beam {
+  position: absolute;
+  width: 2px;
+  height: 80px;
+  background: linear-gradient(to bottom, transparent, #FFDE00, transparent);
+  animation: beamScan 3s linear infinite;
+}
+
+/* Epic Games Official Button Styles */
+.btn-epic-primary {
+  background-color: var(--epic-yellow);
+  color: #121212;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.8125rem;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-epic-primary:hover {
+  background-color: var(--epic-yellow-hover);
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 8px 24px rgba(255, 222, 0, 0.35);
+}
+
+.btn-epic-primary:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.btn-epic-secondary {
+  background-color: transparent;
+  color: currentColor;
+  border: 1px solid var(--epic-border);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.8125rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-epic-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Card da Epic Games com transição sutil profissional */
+.epic-game-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.epic-game-card:hover {
+  transform: translateY(-6px);
+}
