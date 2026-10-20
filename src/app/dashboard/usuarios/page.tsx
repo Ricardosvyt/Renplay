@@ -1,0 +1,592 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+
+/* ============================================================== */
+/* TIPAGEM DO USUÁRIO                                             */
+/* ============================================================== */
+export interface DbUser {
+  id: string;
+  username: string;
+  email: string;
+  role: "admin" | "dev" | "tradutor" | "moderador" | "usuario" | "vip";
+  status: string;
+  created_at: string;
+}
+
+/* ============================================================== */
+/* ÍCONES VETORIAIS PROFISSIONAIS (SVG)                           */
+/* ============================================================== */
+function ShieldIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+
+function CodeIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </svg>
+  );
+}
+
+function GlobeIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+function CrownIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z" />
+    </svg>
+  );
+}
+
+function UserIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function SearchIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+function ArrowLeftIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+export default function UsuariosPage() {
+  const [users, setUsers] = useState<DbUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Modal Novo Usuário
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState<"admin" | "dev" | "tradutor" | "moderador" | "usuario" | "vip">("usuario");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalError, setModalError] = useState("");
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3200);
+  };
+
+  // Buscar usuários do banco PostgreSQL
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      if (roleFilter !== "all") params.set("role", roleFilter);
+
+      const res = await fetch(`/api/users?${params.toString()}`);
+      const data = await res.json();
+      if (data.users) {
+        setUsers(data.users);
+      }
+    } catch (err) {
+      console.error("Falha ao carregar usuários:", err);
+      showToast("Erro ao conectar com o banco de dados.");
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, roleFilter]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Criar Usuário
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalError("");
+
+    if (!newUsername.trim() || !newEmail.trim() || !newPassword.trim()) {
+      setModalError("Preencha todos os campos obrigatórios.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: newUsername,
+          email: newEmail,
+          password: newPassword,
+          role: newRole,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setModalError(data.error || "Erro ao cadastrar usuário.");
+        return;
+      }
+
+      showToast(`Usuário ${newUsername} cadastrado com sucesso!`);
+      setIsModalOpen(false);
+      setNewUsername("");
+      setNewEmail("");
+      setNewPassword("");
+      setNewRole("usuario");
+      fetchUsers();
+    } catch {
+      setModalError("Erro de comunicação com o servidor.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Excluir Usuário
+  const handleDeleteUser = async (id: string, username: string) => {
+    if (!confirm(`Deseja realmente remover o usuário "${username}" do banco de dados?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/users?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        showToast(`Usuário ${username} removido com sucesso.`);
+        setUsers((prev) => prev.filter((u) => u.id !== id));
+      } else {
+        showToast("Falha ao remover usuário.");
+      }
+    } catch {
+      showToast("Erro ao conectar ao servidor.");
+    }
+  };
+
+  // Badges visuais por função
+  const getRoleBadge = (role: string) => {
+    switch (role.toLowerCase()) {
+      case "admin":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-red-500/15 text-red-400 border border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+            <ShieldIcon className="w-3 h-3 text-red-400" />
+            <span>ADMIN</span>
+          </span>
+        );
+      case "dev":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-blue-500/15 text-blue-400 border border-blue-500/30">
+            <CodeIcon className="w-3 h-3 text-blue-400" />
+            <span>DEV</span>
+          </span>
+        );
+      case "tradutor":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-400/15 text-amber-300 border border-amber-400/30">
+            <GlobeIcon className="w-3 h-3 text-amber-300" />
+            <span>TRADUTOR</span>
+          </span>
+        );
+      case "moderador":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-purple-500/15 text-purple-400 border border-purple-500/30">
+            <ShieldIcon className="w-3 h-3 text-purple-400" />
+            <span>MODERADOR</span>
+          </span>
+        );
+      case "vip":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-[#FFDE00]/15 text-[#FFDE00] border border-[#FFDE00]/40 shadow-[0_0_12px_rgba(255,222,0,0.25)]">
+            <CrownIcon className="w-3 h-3 text-[#FFDE00]" />
+            <span>VIP</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-zinc-800 text-zinc-300 border border-zinc-700">
+            <UserIcon className="w-3 h-3 text-zinc-400" />
+            <span>USUÁRIO</span>
+          </span>
+        );
+    }
+  };
+
+  const totalAdmins = users.filter((u) => u.role === "admin").length;
+  const totalDevsTrans = users.filter((u) => u.role === "dev" || u.role === "tradutor").length;
+  const totalVips = users.filter((u) => u.role === "vip").length;
+
+  return (
+    <div className="min-h-screen bg-[#090A0F] text-[#F5F5F5] font-sans flex flex-col justify-between relative overflow-x-hidden selection:bg-[#FFDE00] selection:text-black">
+      {/* ============================================================== */}
+      {/* CAMADAS DE AMBIENTAÇÃO CIBERNÉTICA ESTILO LOGIN               */}
+      {/* ============================================================== */}
+      <div
+        className="fixed inset-0 pointer-events-none opacity-30 z-0"
+        style={{
+          backgroundImage: `linear-gradient(to right, rgba(255, 222, 0, 0.08) 1px, transparent 1px),
+                           linear-gradient(to bottom, rgba(255, 222, 0, 0.08) 1px, transparent 1px)`,
+          backgroundSize: "32px 32px",
+          maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 90%)",
+          WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 90%)",
+        }}
+      />
+      <div className="fixed -top-32 -right-32 w-[520px] h-[520px] rounded-full blur-[110px] pointer-events-none animate-ambient-drift-1 bg-gradient-to-br from-[#FFDE00]/15 via-amber-500/10 to-transparent z-0" />
+      <div className="fixed -bottom-40 -left-28 w-[500px] h-[500px] rounded-full blur-[100px] pointer-events-none animate-ambient-drift-2 bg-gradient-to-tr from-amber-600/14 via-[#FFDE00]/10 to-transparent z-0" />
+
+      {/* Partículas Douradas Flutuantes */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <span className="absolute left-[10%] bottom-[25%] w-2 h-2 rounded-full bg-[#FFDE00] shadow-[0_0_10px_#FFDE00] animate-ember-1" />
+        <span className="absolute right-[15%] top-[25%] w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#F59E0B] animate-ember-3" />
+        <span className="absolute left-[8%] top-[40%] text-[#FFDE00] text-sm font-black select-none drop-shadow-[0_0_8px_rgba(255,222,0,0.85)] animate-pulse">✦</span>
+      </div>
+
+      {/* ============================================================== */}
+      {/* HEADER SUPERIOR                                                */}
+      {/* ============================================================== */}
+      <header className="border-b border-[#1B1D27] bg-[#090A0F]/90 backdrop-blur-md sticky top-0 z-40 relative">
+        <div className="max-w-[1500px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-900/50 transition-all cursor-pointer"
+            >
+              <ArrowLeftIcon />
+              <span>Painel</span>
+            </Link>
+
+            <span className="text-zinc-700 font-mono hidden sm:inline">/</span>
+
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/Logoaccount.png" alt="Renplay" className="h-7 w-auto object-contain hidden md:inline" />
+              <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded bg-[#FFDE00]/15 text-[#FFDE00] border border-[#FFDE00]/30 shadow-[0_0_12px_rgba(255,222,0,0.15)]">
+                CONTROLE DE ACESSOS
+              </span>
+              <h1 className="text-sm font-black text-white uppercase tracking-tight hidden lg:inline">
+                Gerenciamento de Usuários
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="py-2 px-5 rounded-xl text-xs font-black uppercase tracking-wider bg-[#FFDE00] hover:bg-[#ffe53b] text-black shadow-[0_4px_16px_rgba(255,222,0,0.25)] hover:shadow-[0_4px_22px_rgba(255,222,0,0.4)] active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <span>+ Novo Usuário</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* TOAST FLUTUANTE */}
+      {toastMessage && (
+        <div className="fixed top-20 right-8 z-50 p-4 rounded-2xl bg-gradient-to-r from-[#FFDE00] to-amber-400 text-black font-black text-xs shadow-[0_10px_35px_rgba(255,222,0,0.4)] animate-bounce flex items-center gap-2.5 border border-black/10">
+          <CheckIcon className="w-4 h-4 text-black stroke-[3]" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* CORPO PRINCIPAL: METRICAS + FILTROS + TABELA                   */}
+      {/* ============================================================== */}
+      <main className="max-w-[1500px] w-full mx-auto p-4 sm:p-8 flex-1 relative z-20 space-y-8">
+        {/* CARDS DE MÉTRICAS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { title: "Total de Usuários", val: users.length.toString(), desc: "Cadastrados no PostgreSQL Neon", color: "text-[#FFDE00]" },
+            { title: "Administradores", val: totalAdmins.toString(), desc: "Acesso total à plataforma", color: "text-red-400" },
+            { title: "Devs & Tradutores", val: totalDevsTrans.toString(), desc: "Gestores de build e localização", color: "text-blue-400" },
+            { title: "Membros VIP", val: totalVips.toString(), desc: "Assinantes e apoiadores", color: "text-amber-300" },
+          ].map((kpi, idx) => (
+            <div key={idx} className="p-5 rounded-2xl bg-[#12141D]/90 border border-[#262B3D] backdrop-blur-xl space-y-1 shadow-lg">
+              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{kpi.title}</span>
+              <div className={`text-2xl font-black ${kpi.color}`}>{loading ? "..." : kpi.val}</div>
+              <p className="text-[10px] text-zinc-500 font-medium">{kpi.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* CARD PRINCIPAL DA TABELA */}
+        <div className="rounded-3xl p-6 sm:p-8 relative transition-all duration-300 backdrop-blur-2xl bg-[#12141D]/95 border border-[#262B3D] shadow-[0_30px_90px_rgba(0,0,0,0.95)]">
+          {/* Filete Dourado no Topo */}
+          <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#FFDE00] to-transparent shadow-[0_2px_12px_rgba(255,222,0,0.6)]" />
+
+          {/* BARRA DE PESQUISA & FILTROS */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-zinc-800/80">
+            <div>
+              <h2 className="text-xl font-black uppercase text-white tracking-tight">
+                Lista de Usuários do Sistema
+              </h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Senhas protegidas com criptografia bcrypt de ponta a ponta.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Campo de Busca */}
+              <div className="relative w-full sm:w-64">
+                <input
+                  type="text"
+                  placeholder="Buscar por usuário ou e-mail..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full py-2.5 pl-9 pr-4 rounded-xl text-xs bg-[#0C0D13] border border-[#202538] text-white placeholder-zinc-500 outline-none focus:border-[#FFDE00] transition-colors"
+                />
+                <SearchIcon className="w-3.5 h-3.5 absolute left-3 top-3 text-zinc-400 pointer-events-none" />
+              </div>
+
+              {/* Filtro por Função */}
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="py-2.5 px-3 rounded-xl text-xs bg-[#0C0D13] border border-[#202538] text-zinc-300 outline-none focus:border-[#FFDE00] cursor-pointer"
+              >
+                <option value="all">Todas as Funções</option>
+                <option value="admin">Administrador</option>
+                <option value="dev">Desenvolvedor</option>
+                <option value="tradutor">Tradutor</option>
+                <option value="moderador">Moderador</option>
+                <option value="vip">VIP</option>
+                <option value="usuario">Usuário</option>
+              </select>
+            </div>
+          </div>
+
+          {/* TABELA DE USUÁRIOS */}
+          <div className="mt-6 rounded-2xl border border-zinc-800/80 bg-[#0C0D13]/60 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-800 bg-[#0B0D14] text-zinc-400 uppercase text-[10px] font-black tracking-wider">
+                    <th className="p-4">Usuário</th>
+                    <th className="p-4">E-mail</th>
+                    <th className="p-4">Função / Nível</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Cadastrado em</th>
+                    <th className="p-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 font-semibold">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center text-zinc-400">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <div className="w-6 h-6 border-2 border-[#FFDE00] border-t-transparent rounded-full animate-spin" />
+                          <p className="text-xs font-bold text-zinc-400">Consultando PostgreSQL Neon...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : users.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center text-zinc-500">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <UserIcon className="w-8 h-8 text-zinc-700 stroke-1" />
+                          <p className="text-sm font-bold text-zinc-400">Nenhum usuário encontrado</p>
+                          <p className="text-xs text-zinc-600">Altere o termo de busca ou adicione um novo usuário.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    users.map((u) => {
+                      const initial = u.username ? u.username.charAt(0).toUpperCase() : "U";
+                      const dateStr = u.created_at
+                        ? new Date(u.created_at).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })
+                        : "—";
+
+                      return (
+                        <tr key={u.id} className="hover:bg-zinc-800/30 transition-colors">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#FFDE00]/20 to-amber-500/20 text-[#FFDE00] font-black flex items-center justify-center border border-[#FFDE00]/30 shrink-0">
+                                {initial}
+                              </div>
+                              <span className="font-bold text-white text-sm">{u.username}</span>
+                            </div>
+                          </td>
+                          <td className="p-4 text-zinc-300 font-mono text-[11px]">{u.email}</td>
+                          <td className="p-4">{getRoleBadge(u.role)}</td>
+                          <td className="p-4">
+                            <span className="inline-flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span>{u.status || "ACTIVE"}</span>
+                            </span>
+                          </td>
+                          <td className="p-4 text-zinc-400 text-xs font-mono">{dateStr}</td>
+                          <td className="p-4 text-right">
+                            <button
+                              onClick={() => handleDeleteUser(u.id, u.username)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-red-400 hover:text-white hover:bg-red-500/20 border border-transparent hover:border-red-500/30 transition-all cursor-pointer inline-flex items-center gap-1"
+                              title="Excluir Usuário"
+                            >
+                              <TrashIcon />
+                              <span>Excluir</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* ============================================================== */}
+      {/* MODAL: CADASTRAR NOVO USUÁRIO                                  */}
+      {/* ============================================================== */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-3xl p-6 sm:p-8 bg-[#12141D] border border-[#262B3D] shadow-[0_25px_70px_rgba(0,0,0,0.95)] relative space-y-5">
+            <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#FFDE00] to-transparent shadow-[0_2px_12px_rgba(255,222,0,0.6)]" />
+
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <h3 className="text-base font-black uppercase text-white tracking-tight">
+                Cadastrar Novo Usuário
+              </h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-zinc-500 hover:text-white font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {modalError && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold text-center">
+                {modalError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5">
+                  Nome de Usuário *
+                </label>
+                <input
+                  type="text"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder="Ex: IcardoGoat"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#0C0D13] border border-[#202538] focus:border-[#FFDE00] text-xs text-white outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5">
+                  E-mail *
+                </label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="Ex: usuario@renplay.com.br"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#0C0D13] border border-[#202538] focus:border-[#FFDE00] text-xs text-white outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5">
+                  Senha (Criptografada com bcrypt) *
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Digite uma senha forte"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#0C0D13] border border-[#202538] focus:border-[#FFDE00] text-xs text-white outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5">
+                  Função / Cargo *
+                </label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as typeof newRole)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#0C0D13] border border-[#202538] focus:border-[#FFDE00] text-xs text-white outline-none cursor-pointer"
+                >
+                  <option value="usuario">Usuário Comum</option>
+                  <option value="vip">Membro VIP</option>
+                  <option value="tradutor">Tradutor</option>
+                  <option value="dev">Desenvolvedor</option>
+                  <option value="moderador">Moderador</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-zinc-800 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#ffe53b] text-black text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg disabled:opacity-50"
+                >
+                  {isSubmitting ? "Salvando..." : "Salvar no Banco"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

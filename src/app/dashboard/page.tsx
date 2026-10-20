@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 /* ============================================================== */
@@ -106,8 +106,28 @@ export default function DashboardPage() {
   // Lista de Jogos do Catálogo (Inicia vazia conforme solicitado)
   const [games, setGames] = useState<GameItem[]>([]);
 
-  // Lista de Membros da Equipe (Inicia vazia conforme solicitado)
+  // Lista de Membros da Equipe sincronizada com o banco
   const [users, setUsers] = useState<UserItem[]>([]);
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.users && Array.isArray(data.users)) {
+          setUsers(
+            data.users.map((u: { id: string; username: string; email: string; role: string; status: string; created_at: string }) => ({
+              id: u.id,
+              name: u.username,
+              email: u.email,
+              role: (u.role.toUpperCase() as UserItem["role"]) || "MODERATOR",
+              status: "ACTIVE",
+              joinedDate: new Date(u.created_at).toLocaleDateString("pt-BR"),
+            }))
+          );
+        }
+      })
+      .catch((err) => console.error("Erro ao sincronizar usuários:", err));
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -438,13 +458,23 @@ export default function DashboardPage() {
           {/* ============================================================ */}
           {activeTab === "users" && (
             <div className="space-y-6 animate-fade-in-up">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">
-                  Equipe & Permissões
-                </h1>
-                <p className="text-xs text-zinc-400 mt-1">
-                  Membros com acesso para gerenciar o catálogo, traduções e publicações.
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">
+                    Equipe & Permissões
+                  </h1>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Membros com acesso para gerenciar o catálogo, traduções e publicações.
+                  </p>
+                </div>
+
+                <Link
+                  href="/dashboard/usuarios"
+                  className="px-4 py-2.5 rounded-xl bg-[#FFDE00] hover:bg-[#ffe53b] text-black font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg cursor-pointer"
+                >
+                  <UsersIcon className="w-4 h-4 text-black" />
+                  <span>Painel de Usuários (Neon DB) →</span>
+                </Link>
               </div>
 
               <div className="rounded-2xl border border-zinc-800 bg-[#141a26] overflow-hidden shadow-xl">
