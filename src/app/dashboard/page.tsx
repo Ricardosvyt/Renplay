@@ -137,33 +137,8 @@ export default function DashboardPage() {
     },
   ]);
 
-  // Lista de Membros da Equipe
-  const [users] = useState<UserItem[]>([
-    {
-      id: "u-1",
-      name: "Administrador Geral",
-      email: "admin@renplay.com.br",
-      role: "ADMIN",
-      status: "ACTIVE",
-      joinedDate: "14/01/2026",
-    },
-    {
-      id: "u-2",
-      name: "Thatty Hentai",
-      email: "thatty@lapkjogos.com",
-      role: "TRANSLATOR",
-      status: "ACTIVE",
-      joinedDate: "18/02/2026",
-    },
-    {
-      id: "u-3",
-      name: "ALDOR Dev",
-      email: "contact@aldor.dev",
-      role: "DEVELOPER",
-      status: "ACTIVE",
-      joinedDate: "20/02/2026",
-    },
-  ]);
+  // Lista de Membros da Equipe (Inicia vazia conforme solicitado)
+  const [users, setUsers] = useState<UserItem[]>([]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -493,21 +468,33 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60 font-semibold">
-                    {users.map((u) => (
-                      <tr key={u.id} className="hover:bg-zinc-800/30 transition-colors">
-                        <td className="p-4 font-bold text-white">{u.name}</td>
-                        <td className="p-4 text-zinc-300 font-mono text-[11px]">{u.email}</td>
-                        <td className="p-4">
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-[#FFDE00]/15 text-[#FFDE00] border border-[#FFDE00]/30">
-                            {u.role}
-                          </span>
+                    {users.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-16 text-center text-zinc-500">
+                          <div className="flex flex-col items-center justify-center gap-2.5">
+                            <UsersIcon className="w-9 h-9 text-zinc-700 stroke-1" />
+                            <p className="text-sm font-bold text-zinc-400">Nenhum membro cadastrado</p>
+                            <p className="text-xs text-zinc-600">A equipe está vazia no momento.</p>
+                          </div>
                         </td>
-                        <td className="p-4">
-                          <span className="text-emerald-400 text-xs font-bold">✓ Ativo</span>
-                        </td>
-                        <td className="p-4 text-zinc-400 text-xs">{u.joinedDate}</td>
                       </tr>
-                    ))}
+                    ) : (
+                      users.map((u) => (
+                        <tr key={u.id} className="hover:bg-zinc-800/30 transition-colors">
+                          <td className="p-4 font-bold text-white">{u.name}</td>
+                          <td className="p-4 text-zinc-300 font-mono text-[11px]">{u.email}</td>
+                          <td className="p-4">
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-[#FFDE00]/15 text-[#FFDE00] border border-[#FFDE00]/30">
+                              {u.role}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-emerald-400 text-xs font-bold">✓ Ativo</span>
+                          </td>
+                          <td className="p-4 text-zinc-400 text-xs">{u.joinedDate}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
