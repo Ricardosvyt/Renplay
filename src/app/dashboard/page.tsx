@@ -603,7 +603,7 @@ export default function DashboardPage() {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-zinc-800 bg-[#0d111a] text-zinc-400 uppercase text-[10px] font-black tracking-wider">
-                      <th className="p-4">Nome</th>
+                      <th className="p-4">Usuário</th>
                       <th className="p-4">E-mail</th>
                       <th className="p-4">Função</th>
                       <th className="p-4">Verificação (3 Etapas)</th>

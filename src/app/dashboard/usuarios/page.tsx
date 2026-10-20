@@ -764,7 +764,7 @@ export default function UsuariosPage() {
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5">
-                  Nome de Usuário *
+                  Usuário *
                 </label>
                 <input
                   type="text"

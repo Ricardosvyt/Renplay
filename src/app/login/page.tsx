@@ -552,7 +552,7 @@ export default function LoginPage() {
                       isDark ? "text-zinc-400" : "text-zinc-800"
                     }`}
                   >
-                    E-mail ou Nome de Exibição
+                    E-mail ou Usuário
                   </label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none">
