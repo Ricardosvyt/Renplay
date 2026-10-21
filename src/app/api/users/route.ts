@@ -1,219 +1,145 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
 import bcrypt from "bcryptjs";
+import { getCurrentUser } from "@/lib/auth";
+import { getDb } from "@/lib/db";
 
-let pool: Pool | null = null;
-function getPool() {
-  if (!pool && process.env.DATABASE_URL) {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-    });
+async function requireAdmin() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Autenticação necessária." }, { status: 401 });
+    if (!user.roles.includes("ADMIN")) return NextResponse.json({ error: "Permissão insuficiente." }, { status: 403 });
+    return null;
+  } catch (error) {
+    console.error("Falha ao validar administrador:", error);
+    return NextResponse.json({ error: "Não foi possível validar a sessão administrativa." }, { status: 503 });
   }
-  return pool;
 }
 
-// GET /api/users - Listar usuários com filtros e etapas de verificação
+const userQuery = `
+  SELECT u.id, u.username, u.email, u.active, u.banned, u.banned_until, u.ban_reason, u.created_at,
+         COALESCE((array_agg(ur.role ORDER BY CASE ur.role
+           WHEN 'ADMIN' THEN 1 WHEN 'MODERATOR' THEN 2 WHEN 'DEVELOPER' THEN 3
+           WHEN 'TRANSLATOR' THEN 4 WHEN 'VIP' THEN 5 ELSE 6 END
+         ) FILTER (WHERE ur.role <> 'USER'))[1], 'USER') AS role
+    FROM rp_users u
+    LEFT JOIN rp_user_roles ur ON ur.user_id = u.id
+   GROUP BY u.id
+   ORDER BY u.created_at DESC`;
+
+function toRole(role: string) {
+  const roles: Record<string, string> = { ADMIN: "admin", MODERATOR: "moderador", DEVELOPER: "desenvolvedor", TRANSLATOR: "tradutor", VIP: "vip", USER: "membro" };
+  return roles[role] || "membro";
+}
+
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const q = (searchParams.get("q") || "").toLowerCase().trim();
-  const role = (searchParams.get("role") || "all").toLowerCase().trim();
-  const verifiedOnly = searchParams.get("verified") === "true";
-
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
-    const p = getPool();
-    if (!p) {
-      return NextResponse.json({ error: "Banco de dados não configurado." }, { status: 500 });
-    }
-
-    let query = `
-      SELECT id, username, email, role, status, 
-             verification_level, email_verified, identity_verified, two_factor_verified,
-             created_at, updated_at
-      FROM rp_users
-      WHERE 1=1
-    `;
-    const values: (string | number)[] = [];
-
-    if (role && role !== "all") {
-      values.push(role);
-      query += ` AND LOWER(role) = $${values.length}`;
-    }
-
-    if (verifiedOnly) {
-      query += ` AND verification_level = 3`;
-    }
-
-    if (q) {
-      values.push(`%${q}%`);
-      query += ` AND (LOWER(username) LIKE $${values.length} OR LOWER(email) LIKE $${values.length})`;
-    }
-
-    query += ` ORDER BY verification_level DESC, created_at ASC`;
-
-    const res = await p.query(query, values);
-    return NextResponse.json({ users: res.rows });
+    const query = request.nextUrl.searchParams.get("q")?.trim().toLowerCase() || "";
+    const requestedPage = Number(request.nextUrl.searchParams.get("page") || "1");
+    const requestedLimit = Number(request.nextUrl.searchParams.get("limit") || "25");
+    const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+    const limit = Number.isFinite(requestedLimit) && requestedLimit > 0 && requestedLimit <= 100 ? Math.floor(requestedLimit) : 25;
+    const roleFilter = request.nextUrl.searchParams.get("role")?.trim().toLowerCase() || "all";
+    const result = await getDb().query(userQuery);
+    const allUsers = result.rows
+      .filter((user) => !query || user.username.includes(query) || user.email.includes(query))
+      .map((user) => ({ id: user.id, username: user.username, email: user.email, role: toRole(user.role), status: user.banned ? "BANNED" : user.active ? "ACTIVE" : "INACTIVE", banned: user.banned, banned_until: user.banned_until, ban_reason: user.ban_reason, created_at: user.created_at }))
+      .filter((user) => roleFilter === "all" || user.role === roleFilter);
+    const total = allUsers.length;
+    const users = allUsers.slice((page - 1) * limit, page * limit);
+    return NextResponse.json({ users, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Erro ao buscar usuários:", error);
-    return NextResponse.json({ error: "Falha ao consultar usuários no banco." }, { status: 500 });
+    return NextResponse.json({ error: "Falha ao consultar as contas no banco." }, { status: 500 });
   }
 }
 
-// POST /api/users - Criar novo usuário com senha criptografada e verificação inicial
 export async function POST(request: NextRequest) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
-    const body = await request.json();
-    const { username, email, password, role = "usuario", verification_level = 1 } = body;
-
-    if (!username || !email || !password) {
-      return NextResponse.json(
-        { error: "Nome de usuário, e-mail e senha são obrigatórios." },
-        { status: 400 }
-      );
-    }
-
-    const p = getPool();
-    if (!p) {
-      return NextResponse.json({ error: "Banco de dados não conectado." }, { status: 500 });
-    }
-
-    // Hash da senha com bcrypt
-    const salt = bcrypt.genSaltSync(10);
-    const passwordHash = bcrypt.hashSync(password, salt);
-
-    const level = Number(verification_level) || 1;
-    const emailVerified = level >= 1;
-    const identityVerified = level >= 2;
-    const twoFactorVerified = level >= 3;
-
-    const insertQuery = `
-      INSERT INTO rp_users (username, email, password_hash, role, status, verification_level, email_verified, identity_verified, two_factor_verified)
-      VALUES ($1, $2, $3, $4, 'ACTIVE', $5, $6, $7, $8)
-      RETURNING id, username, email, role, status, verification_level, email_verified, identity_verified, two_factor_verified, created_at;
-    `;
-
-    const res = await p.query(insertQuery, [
-      username.trim(),
-      email.trim().toLowerCase(),
-      passwordHash,
-      role.toLowerCase(),
-      level,
-      emailVerified,
-      identityVerified,
-      twoFactorVerified,
-    ]);
-
-    return NextResponse.json({ user: res.rows[0], success: true }, { status: 201 });
-  } catch (error: unknown) {
-    console.error("Erro ao cadastrar usuário:", error);
-    const err = error as { code?: string };
-    if (err.code === "23505") {
-      return NextResponse.json({ error: "E-mail ou nome de usuário já cadastrado." }, { status: 409 });
-    }
-    return NextResponse.json({ error: "Falha ao inserir usuário no banco." }, { status: 500 });
+    const body = await request.json() as { username?: string; email?: string; password?: string; role?: string };
+    const username = body.username?.trim().toLowerCase() || "";
+    const email = body.email?.trim().toLowerCase() || "";
+    const password = body.password || "";
+    const role = (body.role || "usuario").trim().toUpperCase();
+    const allowed = new Set(["USER", "ADMIN", "MODERATOR", "DEVELOPER", "TRANSLATOR", "VIP"]);
+    if (!username || !email || password.length < 8 || !allowed.has(role)) return NextResponse.json({ error: "Preencha os dados corretamente. A senha deve ter pelo menos 8 caracteres." }, { status: 400 });
+    const client = await getDb().connect();
+    try {
+      await client.query("BEGIN");
+      const passwordHash = await bcrypt.hash(password, 12);
+      const result = await client.query("INSERT INTO rp_users (username, email, display_name, password_hash, active, email_verified) VALUES ($1, $2, $3, $4, true, true) RETURNING id, username, email, created_at", [username, email, username, passwordHash]);
+      await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, 'USER') ON CONFLICT DO NOTHING", [result.rows[0].id]);
+      if (role !== "USER") await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, $2)", [result.rows[0].id, role]);
+      await client.query("COMMIT");
+      return NextResponse.json({ user: result.rows[0], success: true }, { status: 201 });
+    } catch (error) { await client.query("ROLLBACK").catch(() => undefined); throw error; }
+    finally { client.release(); }
+  } catch (error) {
+    console.error("Erro ao criar usuário:", error);
+    const code = (error as { code?: string }).code;
+    if (code === "23505") return NextResponse.json({ error: "E-mail ou nome de usuário já cadastrado." }, { status: 409 });
+    return NextResponse.json({ error: "Falha ao criar a conta." }, { status: 500 });
   }
 }
 
-// PATCH /api/users - Atualizar ficha/dados do usuário e etapas de verificação
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const {
-      id,
-      username,
-      email,
-      role,
-      status,
-      password,
-      verification_level,
-      email_verified,
-      identity_verified,
-      two_factor_verified,
-    } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: "ID do usuário não fornecido." }, { status: 400 });
-    }
-
-    const p = getPool();
-    if (!p) {
-      return NextResponse.json({ error: "Banco de dados não conectado." }, { status: 500 });
-    }
-
-    // Calcula o nível com base nas 3 etapas se fornecido individualmente
-    let calculatedLevel = verification_level;
-    if (calculatedLevel === undefined && (email_verified !== undefined || identity_verified !== undefined || two_factor_verified !== undefined)) {
-      calculatedLevel = (email_verified ? 1 : 0) + (identity_verified ? 1 : 0) + (two_factor_verified ? 1 : 0);
-    }
-
-    let passwordHash: string | null = null;
-    if (password && typeof password === "string" && password.trim().length >= 6) {
-      passwordHash = bcrypt.hashSync(password.trim(), 10);
-    }
-
-    const updateQuery = `
-      UPDATE rp_users
-      SET username = COALESCE($2, username),
-          email = COALESCE($3, email),
-          role = COALESCE($4, role),
-          status = COALESCE($5, status),
-          password_hash = COALESCE($6, password_hash),
-          verification_level = COALESCE($7, verification_level),
-          email_verified = COALESCE($8, email_verified),
-          identity_verified = COALESCE($9, identity_verified),
-          two_factor_verified = COALESCE($10, two_factor_verified),
-          updated_at = NOW()
-      WHERE id = $1
-      RETURNING id, username, email, role, status, verification_level, email_verified, identity_verified, two_factor_verified, created_at, updated_at;
-    `;
-
-    const res = await p.query(updateQuery, [
-      id,
-      username?.trim() || null,
-      email?.trim() || null,
-      role?.trim()?.toLowerCase() || null,
-      status?.trim() || null,
-      passwordHash,
-      calculatedLevel !== undefined ? calculatedLevel : null,
-      email_verified !== undefined ? email_verified : null,
-      identity_verified !== undefined ? identity_verified : null,
-      two_factor_verified !== undefined ? two_factor_verified : null,
-    ]);
-
-    if (res.rows.length === 0) {
-      return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
-    }
-
-    return NextResponse.json({ user: res.rows[0], success: true });
-  } catch (error: unknown) {
-    console.error("Erro ao atualizar usuário:", error);
-    const err = error as { code?: string };
-    if (err.code === "23505") {
-      return NextResponse.json({ error: "E-mail ou nome de usuário já em uso por outra conta." }, { status: 409 });
-    }
-    return NextResponse.json({ error: "Falha ao atualizar dados do usuário." }, { status: 500 });
-  }
-}
-
-// DELETE /api/users - Excluir usuário pelo ID
 export async function DELETE(request: NextRequest) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+  const id = request.nextUrl.searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "ID da conta não fornecido." }, { status: 400 });
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json({ error: "ID do usuário não fornecido." }, { status: 400 });
-    }
-
-    const p = getPool();
-    if (!p) {
-      return NextResponse.json({ error: "Banco de dados não conectado." }, { status: 500 });
-    }
-
-    await p.query("DELETE FROM rp_users WHERE id = $1", [id]);
-    return NextResponse.json({ success: true, message: "Usuário excluído com sucesso." });
+    const body = await request.json().catch(() => ({})) as { password?: string };
+    if (!body.password) return NextResponse.json({ error: "Digite sua senha de administrador para excluir a conta." }, { status: 400 });
+    const admin = await getCurrentUser();
+    if (!admin) return NextResponse.json({ error: "Sessão administrativa expirada." }, { status: 401 });
+    const adminResult = await getDb().query<{ password_hash: string }>("SELECT password_hash FROM rp_users WHERE id = $1 AND active = true", [admin.id]);
+    const validPassword = await bcrypt.compare(body.password, adminResult.rows[0]?.password_hash || "");
+    if (!validPassword) return NextResponse.json({ error: "Senha de administrador incorreta." }, { status: 403 });
+    if (id === admin.id) return NextResponse.json({ error: "Você não pode excluir a própria conta." }, { status: 400 });
+    await getDb().query("DELETE FROM rp_users WHERE id = $1", [id]);
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Erro ao excluir usuário:", error);
-    return NextResponse.json({ error: "Falha ao remover usuário." }, { status: 500 });
+    return NextResponse.json({ error: "Falha ao remover a conta." }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+  try {
+    const body = await request.json() as { id?: string; username?: string; email?: string; role?: string; active?: boolean; password?: string; banned?: boolean; bannedUntil?: string | null; banReason?: string };
+    const id = body.id?.trim();
+    const username = body.username?.trim().toLowerCase();
+    const email = body.email?.trim().toLowerCase();
+    const role = (body.role || "USER").trim().toUpperCase();
+    const allowed = new Set(["USER", "ADMIN", "MODERATOR", "DEVELOPER", "TRANSLATOR", "VIP"]);
+    if (!id || !username || !email || !allowed.has(role)) return NextResponse.json({ error: "Dados de perfil inválidos." }, { status: 400 });
+
+    const client = await getDb().connect();
+    try {
+      await client.query("BEGIN");
+      const passwordHash = body.password?.trim() ? await bcrypt.hash(body.password.trim(), 12) : null;
+      const updated = await client.query(
+        `UPDATE rp_users SET username = $2, email = $3, active = $4, password_hash = COALESCE($5, password_hash), banned = $6, banned_until = $7, ban_reason = $8, updated_at = now()
+          WHERE id = $1 RETURNING id, username, email, active, created_at`,
+        [id, username, email, body.active !== false, passwordHash, body.banned === true, body.banned === true ? (body.bannedUntil || null) : null, body.banned === true ? (body.banReason?.trim() || null) : null]
+      );
+      if (!updated.rows[0]) { await client.query("ROLLBACK"); return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 }); }
+      await client.query("DELETE FROM rp_user_roles WHERE user_id = $1 AND role <> 'USER'", [id]);
+      await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, 'USER') ON CONFLICT DO NOTHING", [id]);
+      if (role !== "USER") await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, $2)", [id, role]);
+      await client.query("COMMIT");
+      return NextResponse.json({ user: updated.rows[0], success: true });
+    } catch (error) { await client.query("ROLLBACK").catch(() => undefined); throw error; }
+    finally { client.release(); }
+  } catch (error) {
+    console.error("Erro ao atualizar usuário:", error);
+    const code = (error as { code?: string }).code;
+    if (code === "23505") return NextResponse.json({ error: "E-mail ou nome de usuário já cadastrado." }, { status: 409 });
+    return NextResponse.json({ error: "Falha ao atualizar o perfil." }, { status: 500 });
   }
 }

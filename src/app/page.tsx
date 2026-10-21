@@ -308,7 +308,7 @@ export default function Home() {
   return (
     <div
       className={`min-h-screen font-sans transition-colors duration-200 flex flex-col justify-between overflow-x-hidden ${
-        isDark ? "bg-[#0a0d14] text-[#e6ebf5]" : "bg-[#f8f9fc] text-[#0a0d14]"
+        isDark ? "bg-[#090A0F] text-[#F5F5F5]" : "bg-[#f7f7f5] text-[#111216]"
       }`}
     >
       {/* ============================================================== */}
@@ -317,7 +317,7 @@ export default function Home() {
       <header
         className={`sticky top-0 z-50 border-b backdrop-blur-md transition-colors ${
           isDark
-            ? "bg-[#0d111a]/95 border-zinc-800/80 shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
+            ? "bg-[#090A0F]/90 border-[#29292F] shadow-[0_4px_24px_rgba(0,0,0,0.45)]"
             : "bg-white/95 border-zinc-200 shadow-sm"
         }`}
       >
@@ -334,10 +334,10 @@ export default function Home() {
             </Link>
 
             <nav className="hidden lg:flex items-center gap-6 text-xs font-black uppercase tracking-wider text-zinc-400">
-              <a href="#inicio" className="hover:text-[#58cc02] transition-colors">Download</a>
-              <a href="#vantagens" className="hover:text-[#58cc02] transition-colors">Vantagens</a>
-              <a href="#descobrir" className="hover:text-[#58cc02] transition-colors">Catálogo</a>
-              <a href="#faq" className="hover:text-[#58cc02] transition-colors">FAQ</a>
+              <a href="#inicio" className="hover:text-[#FFDE00] transition-colors">Download</a>
+              <a href="#vantagens" className="hover:text-[#FFDE00] transition-colors">Vantagens</a>
+              <a href="#descobrir" className="hover:text-[#FFDE00] transition-colors">Catálogo</a>
+              <a href="#faq" className="hover:text-[#FFDE00] transition-colors">FAQ</a>
               <Link href="/portal" className="text-[#FFDE00] hover:underline">Meu Portal</Link>
               <Link href="/dashboard" className="text-zinc-300 hover:text-white">Criador</Link>
             </nav>
@@ -355,8 +355,8 @@ export default function Home() {
                 placeholder="Buscar no catálogo..."
                 className={`py-2 pl-9 pr-8 text-xs rounded-xl border outline-none transition-all w-44 lg:w-56 ${
                   isDark
-                    ? "bg-[#141a26] border-zinc-700/60 text-white placeholder-zinc-500 focus:border-[#58cc02] focus:w-64"
-                    : "bg-zinc-100 border-zinc-300 text-black placeholder-zinc-400 focus:border-[#58cc02] focus:w-64"
+                    ? "bg-[#12141D] border-[#29292F] text-white placeholder-zinc-500 focus:border-[#FFDE00] focus:w-64"
+                    : "bg-zinc-100 border-zinc-300 text-black placeholder-zinc-400 focus:border-[#FFDE00] focus:w-64"
                 }`}
               />
               <SearchIcon className="w-3.5 h-3.5 absolute left-3 top-3 text-zinc-400 pointer-events-none" />
@@ -391,7 +391,7 @@ export default function Home() {
             {/* Botão Baixar Launcher (Verde Duolingo / Gamified CTA) */}
             <button
               onClick={handleDownload}
-              className="py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider bg-[#58cc02] hover:bg-[#61e002] active:scale-95 text-white shadow-[0_4px_0_#46a302] hover:shadow-[0_2px_0_#46a302] hover:translate-y-[2px] transition-all flex items-center gap-2 cursor-pointer"
+                  className="py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider bg-[#FFDE00] hover:bg-[#ffe84d] active:scale-95 text-black shadow-[0_4px_0_#b59b00] hover:shadow-[0_2px_0_#b59b00] hover:translate-y-[2px] transition-all flex items-center gap-2 cursor-pointer"
             >
               <DownloadIcon className="w-4 h-4" />
               <span className="hidden sm:inline">Baixar Launcher</span>
@@ -401,18 +401,17 @@ export default function Home() {
       </header>
 
       {/* ============================================================== */}
-      {/* HERO SECTION: FUSION DUOLINGO + EPIC GAMES STORE               */}
+      {/* HERO SECTION: IDENTIDADE RENPLAY                               */}
       {/* ============================================================== */}
       <main className="flex-1 space-y-24 py-10 sm:py-16">
         <section id="inicio" className="max-w-[1240px] mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Lado Esquerdo: Pitch de Download & Mascote */}
             <div className="lg:col-span-6 space-y-6">
-              {/* Mascote RenDuo (Balão de Fala Divertido) */}
-              <div className="inline-flex items-center gap-3 p-2.5 px-4 rounded-2xl bg-[#58cc02]/15 border border-[#58cc02]/30 text-xs font-semibold text-emerald-400 shadow-sm animate-bounce-subtle">
-                <span className="text-xl">🦉</span>
+              <div className="inline-flex items-center gap-3 p-2.5 px-4 rounded-2xl bg-[#FFDE00]/10 border border-[#FFDE00]/25 text-xs font-semibold text-[#FFDE00] shadow-sm">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FFDE00] text-black font-black">R</span>
                 <div>
-                  <strong className="text-white">RenDuo diz:</strong> Instale o Launcher oficial para jogar offline e salvar seu progresso!
+                  <strong className="text-white">Rina apresenta:</strong> histórias para jogar no seu ritmo, com tudo em um só lugar.
                 </div>
               </div>
 
@@ -422,11 +421,11 @@ export default function Home() {
                   APLICATIVO OFICIAL
                 </span>
                 <span className="text-zinc-500">•</span>
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  100% GRATUITO
+                <span className="px-3 py-1 rounded-full bg-white/5 text-zinc-300 border border-[#29292F]">
+                  GRATUITO
                 </span>
                 <span className="text-zinc-500">•</span>
-                <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1.5">
+                <span className="px-3 py-1 rounded-full bg-white/5 text-zinc-300 border border-[#29292F] flex items-center gap-1.5">
                   <WindowsIcon className="w-3 h-3" />
                   WINDOWS
                 </span>
@@ -435,7 +434,7 @@ export default function Home() {
               {/* Título Principal */}
               <h1 className="text-3xl sm:text-5xl xl:text-6xl font-black tracking-tight leading-[1.1] uppercase">
                 O Launcher definitivo para suas <br />
-                <span className="text-[#58cc02] drop-shadow-[0_2px_20px_rgba(88,204,2,0.35)]">
+                <span className="text-[#FFDE00] drop-shadow-[0_2px_20px_rgba(255,222,0,0.25)]">
                   Visual Novels
                 </span>{" "}
                 no PC.
@@ -447,10 +446,10 @@ export default function Home() {
               </p>
 
               {/* Caixa Principal de Ação / Botão de Download para Windows */}
-              <div className={`p-6 rounded-2xl border ${isDark ? "bg-[#141a26] border-zinc-800 shadow-2xl" : "bg-white border-zinc-200 shadow-xl"} space-y-4`}>
+              <div className={`p-6 rounded-2xl border ${isDark ? "bg-[#12141D] border-[#29292F] shadow-2xl" : "bg-white border-zinc-200 shadow-xl"} space-y-4`}>
                 <button
                   onClick={handleDownload}
-                  className="w-full py-4 px-6 rounded-xl font-black text-sm uppercase tracking-wide bg-[#58cc02] hover:bg-[#61e002] active:scale-95 text-white shadow-[0_5px_0_#46a302] hover:shadow-[0_2px_0_#46a302] hover:translate-y-[3px] transition-all flex items-center justify-center gap-4 cursor-pointer group"
+                  className="w-full py-4 px-6 rounded-xl font-black text-sm uppercase tracking-wide bg-[#FFDE00] hover:bg-[#ffe84d] active:scale-95 text-black shadow-[0_5px_0_#b59b00] hover:shadow-[0_2px_0_#b59b00] hover:translate-y-[3px] transition-all flex items-center justify-center gap-4 cursor-pointer group"
                 >
                   <WindowsIcon className="w-6 h-6 shrink-0" />
                   <div className="text-left">
@@ -460,8 +459,8 @@ export default function Home() {
                 </button>
 
                 {downloadStarted && (
-                  <p className="text-xs font-bold text-emerald-400 text-center animate-pulse">
-                    ✓ Download iniciado com sucesso!
+                  <p className="text-xs font-bold text-[#FFDE00] text-center animate-pulse">
+                    Download iniciado com sucesso!
                   </p>
                 )}
 
@@ -472,88 +471,41 @@ export default function Home() {
                 </div>
 
                 <div className="pt-2 border-t border-zinc-800/60 flex flex-wrap items-center justify-center gap-4 text-[11px] font-semibold text-zinc-400">
-                  <span>🛡️ Instalador Seguro & Verificado</span>
-                  <span>⚡ Leve & Rápido</span>
-                  <span>🎮 Sem DRM Bloqueante</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="text-[#FFDE00]">◆</span> Instalador verificado</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="text-[#FFDE00]">◆</span> Leve e rápido</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="text-[#FFDE00]">◆</span> Jogue offline</span>
                 </div>
               </div>
             </div>
 
-            {/* Lado Direito: Mockup Interativo da Janela do Launcher (Estilo Epic Games Store) */}
-            <div className="lg:col-span-6 relative">
-              {/* Efeito Aura de Brilho */}
-              <div className="absolute -inset-4 bg-gradient-to-tr from-[#58cc02]/20 via-[#FFDE00]/15 to-transparent rounded-3xl blur-3xl opacity-70 pointer-events-none" />
+            {/* Lado Direito: Rina como assinatura visual da marca */}
+            <div className="lg:col-span-6 relative min-h-[520px] flex items-end justify-center">
+              <div className="absolute inset-8 rounded-full bg-[#FFDE00]/10 blur-3xl pointer-events-none" />
+              <div className="absolute top-10 right-6 sm:right-12 w-28 h-28 rounded-full border border-[#FFDE00]/30" />
+              <div className="absolute top-24 left-8 sm:left-16 w-2 h-2 rounded-full bg-[#FFDE00] shadow-[0_0_18px_#FFDE00]" />
 
-              <div className={`relative rounded-2xl border overflow-hidden shadow-2xl transition-all ${
-                isDark ? "bg-[#141a26] border-zinc-700/80" : "bg-white border-zinc-300"
+              <div className={`relative w-full max-w-[520px] min-h-[500px] overflow-hidden rounded-[2rem] border ${
+                isDark ? "bg-[#12141D] border-[#29292F]" : "bg-white border-zinc-200"
               }`}>
-                {/* Titlebar da Janela com Bolinhas */}
-                <div className={`h-10 px-4 border-b flex items-center justify-between text-xs ${
-                  isDark ? "bg-[#0d111a] border-zinc-800 text-zinc-400" : "bg-zinc-100 border-zinc-200 text-zinc-600"
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-[#ff4b4b]" />
-                    <span className="w-3 h-3 rounded-full bg-[#ffc800]" />
-                    <span className="w-3 h-3 rounded-full bg-[#58cc02]" />
-                    <span className="ml-3 font-bold text-[11px]">RenPlay Client — Loja & Biblioteca</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase">Windows 64-bit</span>
+                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,222,0,0.10),transparent_42%,rgba(255,255,255,0.02))]" />
+                <div className="absolute left-6 top-6 z-20 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">
+                  <span className="h-2 w-2 rounded-full bg-[#FFDE00] shadow-[0_0_12px_#FFDE00]" />
+                  Sua próxima história
                 </div>
-
-                {/* Subnav interna do Mockup */}
-                <div className="h-9 px-4 border-b border-zinc-800 flex items-center gap-4 text-[11px] font-black uppercase tracking-wider text-zinc-400 bg-[#121620]">
-                  <span className="text-[#58cc02] border-b-2 border-[#58cc02] h-full flex items-center">Destaque da Loja</span>
-                  <span className="hover:text-white cursor-pointer">Minha Biblioteca</span>
-                  <span className="hover:text-white cursor-pointer">Downloads</span>
-                  <span className="hover:text-white cursor-pointer">Configurações</span>
-                </div>
-
-                {/* Tela do Jogo em Destaque */}
-                <div className="relative aspect-[16/10] overflow-hidden group">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={featuredGame.screenshots?.[0] || featuredGame.coverImage || "/images/so-much-to-love-cover.jpg"}
-                    alt={featuredGame.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0d111a] via-[#0d111a]/60 to-transparent" />
-
-                  {/* Detalhes sobrepostos do jogo */}
-                  <div className="absolute inset-x-0 bottom-0 p-6 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase bg-[#58cc02] text-white">
-                        JOGO EM DESTAQUE NO LAUNCHER
-                      </span>
-                      {featuredGame.adult && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-600 text-white">
-                          18+
-                        </span>
-                      )}
-                    </div>
-
-                    <h2 className="text-2xl font-black text-white leading-tight">
-                      {featuredGame.name}
-                    </h2>
-                    <p className="text-xs text-zinc-300 line-clamp-2 max-w-lg">
-                      {featuredGame.description}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      <button
-                        onClick={() => openGameModal(featuredGame as Game)}
-                        className="py-2 px-4 rounded-xl font-bold text-xs bg-white text-black hover:bg-zinc-200 transition-colors cursor-pointer flex items-center gap-1.5"
-                      >
-                        <span>Ver Detalhes</span>
-                      </button>
-                      <button
-                        onClick={handleDownload}
-                        className="py-2 px-4 rounded-xl font-bold text-xs bg-[#58cc02] text-white hover:bg-[#61e002] transition-colors cursor-pointer flex items-center gap-1.5"
-                      >
-                        <DownloadIcon className="w-3.5 h-3.5" />
-                        <span>Baixar no Launcher</span>
-                      </button>
-                    </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/Rina_open.png"
+                  alt="Rina, personagem do RenPlay"
+                  className="absolute inset-x-0 bottom-0 z-10 mx-auto h-[520px] w-full object-contain object-bottom drop-shadow-[0_18px_36px_rgba(0,0,0,0.55)]"
+                />
+                <div className="absolute inset-x-5 bottom-5 z-20 flex items-end justify-between gap-4 rounded-2xl border border-white/10 bg-[#090A0F]/75 p-4 backdrop-blur-md">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">RenPlay</p>
+                    <p className="mt-1 text-lg font-black text-white">Histórias que ficam com você.</p>
                   </div>
+                  <a href="#descobrir" className="shrink-0 rounded-xl bg-[#FFDE00] px-3 py-2 text-[11px] font-black uppercase tracking-wide text-black hover:bg-[#ffe84d] transition-colors">
+                    Explorar
+                  </a>
                 </div>
               </div>
             </div>
@@ -565,7 +517,7 @@ export default function Home() {
         {/* ============================================================== */}
         <section id="vantagens" className="max-w-[1240px] mx-auto px-4 sm:px-6">
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
-            <span className="text-xs font-black uppercase tracking-widest text-[#58cc02]">
+            <span className="text-xs font-black uppercase tracking-widest text-[#FFDE00]">
               EXPERIÊNCIA SUPERIOR
             </span>
             <h2 className="text-3xl sm:text-4xl font-black uppercase">
@@ -578,10 +530,10 @@ export default function Home() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className={`p-6 rounded-2xl border transition-all ${
-              isDark ? "bg-[#141a26] border-zinc-800 hover:border-[#58cc02]" : "bg-white border-zinc-200 hover:border-black"
+              isDark ? "bg-[#12141D] border-[#29292F] hover:border-[#FFDE00]" : "bg-white border-zinc-200 hover:border-black"
             }`}>
-              <div className="w-12 h-12 rounded-xl bg-[#58cc02]/15 text-[#58cc02] flex items-center justify-center mb-4 text-xl">
-                🚀
+              <div className="w-12 h-12 rounded-xl bg-[#FFDE00]/15 text-[#FFDE00] flex items-center justify-center mb-4">
+                <DownloadIcon className="w-5 h-5" />
               </div>
               <h3 className="font-black text-sm uppercase tracking-tight mb-2">Downloads Rápidos</h3>
               <p className="text-xs text-zinc-400 leading-relaxed font-medium">
@@ -590,10 +542,10 @@ export default function Home() {
             </div>
 
             <div className={`p-6 rounded-2xl border transition-all ${
-              isDark ? "bg-[#141a26] border-zinc-800 hover:border-[#58cc02]" : "bg-white border-zinc-200 hover:border-black"
+              isDark ? "bg-[#12141D] border-[#29292F] hover:border-[#FFDE00]" : "bg-white border-zinc-200 hover:border-black"
             }`}>
-              <div className="w-12 h-12 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center mb-4 text-xl">
-                ☁️
+              <div className="w-12 h-12 rounded-xl bg-[#FFDE00]/15 text-[#FFDE00] flex items-center justify-center mb-4">
+                <span className="text-lg font-black">↗</span>
               </div>
               <h3 className="font-black text-sm uppercase tracking-tight mb-2">Saves na Nuvem</h3>
               <p className="text-xs text-zinc-400 leading-relaxed font-medium">
@@ -602,10 +554,10 @@ export default function Home() {
             </div>
 
             <div className={`p-6 rounded-2xl border transition-all ${
-              isDark ? "bg-[#141a26] border-zinc-800 hover:border-[#58cc02]" : "bg-white border-zinc-200 hover:border-black"
+              isDark ? "bg-[#12141D] border-[#29292F] hover:border-[#FFDE00]" : "bg-white border-zinc-200 hover:border-black"
             }`}>
-              <div className="w-12 h-12 rounded-xl bg-[#FFDE00]/15 text-[#FFDE00] flex items-center justify-center mb-4 text-xl">
-                🛡️
+              <div className="w-12 h-12 rounded-xl bg-[#FFDE00]/15 text-[#FFDE00] flex items-center justify-center mb-4">
+                <span className="text-lg font-black">◆</span>
               </div>
               <h3 className="font-black text-sm uppercase tracking-tight mb-2">Modo 100% Offline</h3>
               <p className="text-xs text-zinc-400 leading-relaxed font-medium">
@@ -614,10 +566,10 @@ export default function Home() {
             </div>
 
             <div className={`p-6 rounded-2xl border transition-all ${
-              isDark ? "bg-[#141a26] border-zinc-800 hover:border-[#58cc02]" : "bg-white border-zinc-200 hover:border-black"
+              isDark ? "bg-[#12141D] border-[#29292F] hover:border-[#FFDE00]" : "bg-white border-zinc-200 hover:border-black"
             }`}>
-              <div className="w-12 h-12 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center mb-4 text-xl">
-                🌐
+              <div className="w-12 h-12 rounded-xl bg-[#FFDE00]/15 text-[#FFDE00] flex items-center justify-center mb-4">
+                <span className="text-lg font-black">◎</span>
               </div>
               <h3 className="font-black text-sm uppercase tracking-tight mb-2">Traduções em PT-BR</h3>
               <p className="text-xs text-zinc-400 leading-relaxed font-medium">
@@ -633,7 +585,7 @@ export default function Home() {
         <section id="descobrir" className="max-w-[1240px] mx-auto px-4 sm:px-6 space-y-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-800 pb-6">
             <div>
-              <span className="text-xs font-black uppercase tracking-widest text-[#58cc02]">
+              <span className="text-xs font-black uppercase tracking-widest text-[#FFDE00]">
                 BIBLIOTECA EM CONSTANTE EXPANSÃO
               </span>
               <h2 className="text-3xl font-black uppercase mt-1">Catálogo de Jogos</h2>
@@ -648,7 +600,7 @@ export default function Home() {
                   onClick={() => setSelectedGenre(g)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     selectedGenre === g
-                      ? "bg-[#58cc02] text-white shadow-md shadow-emerald-500/20"
+                      ? "bg-[#FFDE00] text-black shadow-md shadow-yellow-500/20"
                       : isDark
                       ? "bg-[#141a26] text-zinc-400 hover:text-white hover:bg-zinc-800"
                       : "bg-zinc-200 text-zinc-700 hover:bg-zinc-300"
@@ -677,7 +629,7 @@ export default function Home() {
                   onClick={() => openGameModal(game)}
                   className={`group rounded-2xl border overflow-hidden transition-all duration-300 cursor-pointer flex flex-col justify-between ${
                     isDark
-                      ? "bg-[#141a26] border-zinc-800 hover:border-[#58cc02] hover:shadow-[0_8px_30px_rgba(88,204,2,0.15)] hover:-translate-y-1"
+                      ? "bg-[#12141D] border-[#29292F] hover:border-[#FFDE00] hover:shadow-[0_8px_30px_rgba(255,222,0,0.12)] hover:-translate-y-1"
                       : "bg-white border-zinc-200 hover:border-black hover:shadow-xl hover:-translate-y-1"
                   }`}
                 >
@@ -708,7 +660,7 @@ export default function Home() {
                         <span>{game.developer || "Indie"}</span>
                         <span>{game.engine || "Ren'Py"}</span>
                       </div>
-                      <h3 className="font-black text-base group-hover:text-[#58cc02] transition-colors leading-snug">
+                      <h3 className="font-black text-base group-hover:text-[#FFDE00] transition-colors leading-snug">
                         {game.name}
                       </h3>
                       <p className="text-xs text-zinc-400 line-clamp-2 mt-1 leading-relaxed">
@@ -718,7 +670,7 @@ export default function Home() {
 
                     <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-xs font-bold">
                       <span className="text-zinc-500 text-[11px]">{game.version ? `v${game.version}` : "Atualizado"}</span>
-                      <span className="text-[#58cc02] group-hover:underline flex items-center gap-1">
+                      <span className="text-[#FFDE00] group-hover:underline flex items-center gap-1">
                         Ver Detalhes →
                       </span>
                     </div>
@@ -734,7 +686,7 @@ export default function Home() {
         {/* ============================================================== */}
         <section id="faq" className="max-w-3xl mx-auto px-4 sm:px-6 space-y-8">
           <div className="text-center space-y-2">
-            <span className="text-xs font-black uppercase tracking-widest text-[#58cc02]">
+            <span className="text-xs font-black uppercase tracking-widest text-[#FFDE00]">
               TIRE SUAS DÚVIDAS
             </span>
             <h2 className="text-3xl font-black uppercase">Perguntas Frequentes</h2>
@@ -776,7 +728,7 @@ export default function Home() {
                   <span>{faq.q}</span>
                   <ChevronDownIcon
                     className={`w-4 h-4 transition-transform duration-200 ${
-                      openFaq === idx ? "rotate-180 text-[#58cc02]" : "text-zinc-500"
+                      openFaq === idx ? "rotate-180 text-[#FFDE00]" : "text-zinc-500"
                     }`}
                   />
                 </button>
@@ -794,9 +746,9 @@ export default function Home() {
         {/* BANNER CTA FINAL DE DOWNLOAD                                   */}
         {/* ============================================================== */}
         <section className="max-w-[1240px] mx-auto px-4 sm:px-6">
-          <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-r from-emerald-950 via-[#141a26] to-[#0a0d14] border border-emerald-500/30 text-center space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-r from-[#252000] via-[#12141D] to-[#090A0F] border border-[#FFDE00]/25 text-center space-y-6 shadow-2xl relative overflow-hidden">
             <div className="space-y-3 relative z-10 max-w-xl mx-auto">
-              <span className="text-xs font-black uppercase tracking-widest text-[#58cc02]">
+              <span className="text-xs font-black uppercase tracking-widest text-[#FFDE00]">
                 COMECE A JOGAR AGORA
               </span>
               <h2 className="text-3xl sm:text-4xl font-black uppercase">
@@ -810,7 +762,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
               <button
                 onClick={handleDownload}
-                className="py-3.5 px-8 rounded-xl font-black text-xs uppercase tracking-wider bg-[#58cc02] hover:bg-[#61e002] active:scale-95 text-white shadow-[0_4px_0_#46a302] hover:shadow-[0_2px_0_#46a302] transition-all flex items-center gap-2 cursor-pointer"
+                className="py-3.5 px-8 rounded-xl font-black text-xs uppercase tracking-wider bg-[#FFDE00] hover:bg-[#ffe84d] active:scale-95 text-black shadow-[0_4px_0_#b59b00] hover:shadow-[0_2px_0_#b59b00] transition-all flex items-center gap-2 cursor-pointer"
               >
                 <WindowsIcon className="w-5 h-5" />
                 <span>Baixar para Windows (64-bit)</span>
@@ -889,7 +841,7 @@ export default function Home() {
                       key={i}
                       onClick={() => setActiveImageIndex(i)}
                       className={`h-2 rounded-full transition-all cursor-pointer ${
-                        activeImageIndex === i ? "w-6 bg-[#58cc02]" : "w-2 bg-white/50"
+                        activeImageIndex === i ? "w-6 bg-[#FFDE00]" : "w-2 bg-white/50"
                       }`}
                     />
                   ))}
@@ -914,7 +866,7 @@ export default function Home() {
                     href={selectedGame.downloadUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-3 px-6 rounded-xl font-black text-xs uppercase tracking-wide bg-[#58cc02] hover:bg-[#61e002] text-white shadow-lg flex items-center justify-center gap-2"
+                    className="py-3 px-6 rounded-xl font-black text-xs uppercase tracking-wide bg-[#FFDE00] hover:bg-[#ffe84d] text-black shadow-lg flex items-center justify-center gap-2"
                   >
                     <DownloadIcon className="w-4 h-4" />
                     <span>Baixar Jogo ({selectedGame.sizeLabel || "Direto"})</span>
@@ -968,7 +920,7 @@ export default function Home() {
                         href={mirror.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-3 rounded-xl border border-zinc-700/80 bg-zinc-800/30 hover:border-[#58cc02] transition-colors flex items-center justify-between text-xs"
+                        className="p-3 rounded-xl border border-zinc-700/80 bg-zinc-800/30 hover:border-[#FFDE00] transition-colors flex items-center justify-between text-xs"
                       >
                         <div>
                           <div className="font-bold text-white">{mirror.name}</div>
@@ -991,7 +943,7 @@ export default function Home() {
                     {selectedGame.updates.map((up, i) => (
                       <div key={i} className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs space-y-1">
                         <div className="flex items-center justify-between font-bold">
-                          <span className="text-[#58cc02]">v{up.version} — {up.title}</span>
+                          <span className="text-[#FFDE00]">v{up.version} — {up.title}</span>
                           <span className="text-zinc-500 text-[10px]">{up.date}</span>
                         </div>
                         {up.improvements && <p className="text-zinc-400">{up.improvements}</p>}
@@ -1027,12 +979,12 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap items-center gap-6 text-xs font-bold">
-              <a href="#inicio" className="hover:text-[#58cc02] transition-colors">Download</a>
-              <a href="#descobrir" className="hover:text-[#58cc02] transition-colors">Catálogo</a>
-              <Link href="/portal" className="hover:text-[#58cc02] transition-colors">Minha Conta</Link>
-              <Link href="/dev" className="hover:text-[#58cc02] transition-colors">Área da Equipe</Link>
-              <Link href="/dashboard" className="hover:text-[#58cc02] transition-colors">Dashboard Epic</Link>
-              <Link href="/login" className="hover:text-[#58cc02] transition-colors">Entrar</Link>
+              <a href="#inicio" className="hover:text-[#FFDE00] transition-colors">Download</a>
+              <a href="#descobrir" className="hover:text-[#FFDE00] transition-colors">Catálogo</a>
+              <Link href="/portal" className="hover:text-[#FFDE00] transition-colors">Minha Conta</Link>
+              <Link href="/dev" className="hover:text-[#FFDE00] transition-colors">Área da Equipe</Link>
+              <Link href="/dashboard" className="hover:text-[#FFDE00] transition-colors">Dashboard RenPlay</Link>
+              <Link href="/login" className="hover:text-[#FFDE00] transition-colors">Entrar</Link>
             </div>
           </div>
 

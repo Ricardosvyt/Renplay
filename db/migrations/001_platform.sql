@@ -5,11 +5,17 @@ CREATE TABLE rp_users (
  terms_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), last_login_at timestamptz,
  CHECK (username = lower(username)), CHECK (email = lower(email))
 );
-CREATE TABLE rp_user_roles (user_id uuid REFERENCES rp_users ON DELETE CASCADE, role text NOT NULL CHECK(role IN ('USER','ADMIN','DEVELOPER','TRANSLATOR','MODERATOR','TRANSLATION_MODERATOR')), PRIMARY KEY(user_id,role));
-INSERT INTO rp_users(id,username,email,display_name,password_hash,active,must_change_password)
- SELECT id,lower(username),lower(email),display_name,password_hash,is_active,must_change_password FROM staff_users;
-INSERT INTO rp_user_roles SELECT id,upper(role) FROM staff_users;
-INSERT INTO rp_user_roles SELECT id,'USER' FROM staff_users ON CONFLICT DO NOTHING;
+CREATE TABLE rp_user_roles (user_id uuid REFERENCES rp_users ON DELETE CASCADE, role text NOT NULL CHECK(role IN ('USER','ADMIN','DEVELOPER','TRANSLATOR','MODERATOR','VIP','TRANSLATION_MODERATOR')), PRIMARY KEY(user_id,role));
+DO $$
+BEGIN
+  IF to_regclass('public.staff_users') IS NOT NULL THEN
+    INSERT INTO rp_users(id,username,email,display_name,password_hash,active,must_change_password)
+      SELECT id,lower(username),lower(email),display_name,password_hash,is_active,must_change_password
+      FROM staff_users;
+    INSERT INTO rp_user_roles SELECT id,upper(role) FROM staff_users;
+    INSERT INTO rp_user_roles SELECT id,'USER' FROM staff_users ON CONFLICT DO NOTHING;
+  END IF;
+END $$;
 CREATE TABLE rp_sessions (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES rp_users ON DELETE CASCADE,
  token_hash text NOT NULL UNIQUE, refresh_hash text UNIQUE, family_id uuid NOT NULL DEFAULT gen_random_uuid(),

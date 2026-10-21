@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 /* ============================================================== */
 /* ÍCONES VETORIAIS PROFISSIONAIS (SVG)                           */
@@ -74,6 +75,22 @@ function ShieldCheckIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+function CloudIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z" />
+    </svg>
+  );
+}
+
+function SparkIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="m12 2 1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z" />
+    </svg>
+  );
+}
+
 function ArrowLeftIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -84,6 +101,7 @@ function ArrowLeftIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
 }
 
 export default function LoginPage() {
+  const router = useRouter();
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("renplay_theme") !== "light";
@@ -99,60 +117,63 @@ export default function LoginPage() {
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Sistema de Piscada de Olhos Orgânica Direto no DOM (Zero Re-render, Sem Travar ou Resetar a Flutuação)
+  // Piscada natural usando as duas PNGs originais, sem alterar suas cores ou transparência.
   useEffect(() => {
-    // Pré-carrega a imagem de olhos fechados
     const preload = new Image();
-    preload.src = "/Rina_closed.png";
-
-    let timeoutId: ReturnType<typeof setTimeout>;
+    const timers = new Set<ReturnType<typeof setTimeout>>();
     let active = true;
+
+    const wait = (callback: () => void, delay: number) => {
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        callback();
+      }, delay);
+      timers.add(timer);
+    };
+
+    const setClosed = (closed: boolean) => {
+      if (closedEyeRef.current) {
+        closedEyeRef.current.style.opacity = closed ? "1" : "0";
+      }
+    };
+
+    const blink = (doubleBlink = false) => {
+      if (!active) return;
+
+      // Fechamento rápido, pequena pausa e abertura gradual.
+      setClosed(true);
+      wait(() => {
+        if (!active) return;
+        setClosed(false);
+
+        if (doubleBlink) {
+          wait(() => blink(false), 170);
+        } else {
+          scheduleNextBlink();
+        }
+      }, 105);
+    };
 
     const scheduleNextBlink = () => {
       if (!active) return;
-      // Intervalo dinâmico realista entre piscadas (entre 2.6s e 5.2s)
-      const delay = Math.random() * 2600 + 2600;
-
-      timeoutId = setTimeout(() => {
-        if (!active) return;
-        if (closedEyeRef.current) {
-          closedEyeRef.current.style.opacity = "1";
-        }
-
-        // Olhos fechados por ~150ms (velocidade natural do piscar humano/anime)
-        setTimeout(() => {
-          if (!active) return;
-          if (closedEyeRef.current) {
-            closedEyeRef.current.style.opacity = "0";
-          }
-
-          // 25% de probabilidade de piscada dupla rápida
-          if (Math.random() < 0.25) {
-            setTimeout(() => {
-              if (!active) return;
-              if (closedEyeRef.current) {
-                closedEyeRef.current.style.opacity = "1";
-              }
-              setTimeout(() => {
-                if (!active) return;
-                if (closedEyeRef.current) {
-                  closedEyeRef.current.style.opacity = "0";
-                }
-                scheduleNextBlink();
-              }, 140);
-            }, 120);
-          } else {
-            scheduleNextBlink();
-          }
-        }, 150);
-      }, delay);
+      // Pessoas piscam em intervalos irregulares, geralmente entre 2,8 e 6,8 segundos.
+      const delay = 2800 + Math.random() * 4000;
+      wait(() => blink(Math.random() < 0.16), delay);
     };
 
-    scheduleNextBlink();
+    preload.onload = () => {
+      if (!active) return;
+      const decoded = preload.decode ? preload.decode() : Promise.resolve();
+      void decoded.catch(() => undefined).finally(() => {
+        if (active) scheduleNextBlink();
+      });
+    };
+    preload.src = "/Rina_closed_eyes.png";
 
     return () => {
       active = false;
-      clearTimeout(timeoutId);
+      timers.forEach(clearTimeout);
+      timers.clear();
     };
   }, []);
 
@@ -177,7 +198,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
@@ -188,10 +209,28 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ identifier, password, rememberMe }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        setErrorMessage(data.error || "Não foi possível iniciar a sessão.");
+        return;
+      }
+
       setSuccess(true);
-    }, 900);
+      router.replace("/dashboard");
+      router.refresh();
+    } catch {
+      setErrorMessage("Não foi possível conectar ao servidor. Verifique se o banco de dados está configurado e tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -235,6 +274,8 @@ export default function LoginPage() {
           {/* Botão Modo Escuro / Claro (Amarelo & Preto) */}
           <button
             onClick={toggleTheme}
+            aria-label={isDark ? "Ativar modo claro" : "Ativar modo escuro"}
+            aria-pressed={!isDark}
             className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md border transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 ${
               isDark
                 ? "bg-[#141620] text-[#FFDE00] border-[#FFDE00]/40 hover:border-[#FFDE00] shadow-[0_2px_8px_rgba(255,222,0,0.15)]"
@@ -256,7 +297,7 @@ export default function LoginPage() {
         {/* LADO ESQUERDO: IMAGEM COM CORTE DIAGONAL E STUDIO LIGHTING   */}
         {/* ============================================================ */}
         <div
-          className={`relative w-full lg:w-[56%] min-h-[420px] lg:min-h-full overflow-hidden flex flex-col justify-center p-8 sm:p-14 z-10 animate-fade-in-up select-none transition-colors duration-300 ${
+          className={`order-2 lg:order-1 relative w-full lg:w-[56%] min-h-[300px] sm:min-h-[360px] lg:min-h-full overflow-hidden flex flex-col justify-center p-6 sm:p-14 z-10 animate-fade-in-up select-none transition-colors duration-300 ${
             isDark
               ? "bg-[#07070A] bg-[radial-gradient(ellipse_at_35%_40%,rgba(255,222,0,0.08),transparent_65%)]"
               : "bg-[#EAECEF] bg-[radial-gradient(ellipse_at_40%_40%,#FFFFFF,#DEE2E8_80%)]"
@@ -303,28 +344,32 @@ export default function LoginPage() {
           <div
             className={`absolute w-80 sm:w-96 h-80 sm:h-96 rounded-full blur-3xl pointer-events-none z-[2] animate-character-glow transition-colors duration-500 ${
               isDark
-                ? "bg-[#FFDE00]/16 right-4 sm:right-16 top-1/4"
-                : "bg-amber-400/25 right-4 sm:right-16 top-1/4"
+                ? "bg-[#FFDE00]/10 right-4 sm:right-16 top-1/4"
+                : "bg-amber-400/18 right-4 sm:right-16 top-1/4"
             }`}
           />
 
           {/* Personagem Anime (Rina) Posicionada à Direita para Deixar Espaço Limpo para o Texto */}
           <div className="absolute inset-x-0 top-3 sm:top-6 -bottom-6 z-10 pointer-events-none overflow-hidden flex items-center justify-end rina-floating-element">
-            {/* Camada Base: Rina com Olhos Abertos (Rina copy.png) com Brilho e Sombra */}
+            <div
+              aria-hidden="true"
+              className="absolute right-[12%] top-[18%] w-[42%] h-[58%] rounded-full bg-[#FFDE00]/10 blur-[80px]"
+            />
+            {/* PNG base: personagem com os olhos abertos */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/Rina_open.png"
               alt="Renplay Visual Artwork - Personagem Anime Rina"
               className="w-full h-full object-cover object-[78%_center] lg:object-[82%_18px] lg:translate-x-12 xl:translate-x-20 pointer-events-none select-none drop-shadow-[0_20px_45px_rgba(0,0,0,0.45)] drop-shadow-[0_0_35px_rgba(255,222,0,0.22)]"
             />
-            {/* Camada Sobreposta: Rina com Olhos Fechados com Exatamente o Mesmo Efeito de Brilho e Sombra */}
+            {/* PNG sobreposta: apenas os olhos fechados mudam de opacidade */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               ref={closedEyeRef}
-              src="/Rina_closed.png"
+              src="/Rina_closed_eyes.png"
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover object-[78%_center] lg:object-[82%_18px] lg:translate-x-12 xl:translate-x-20 pointer-events-none select-none transition-opacity duration-75 opacity-0 drop-shadow-[0_20px_45px_rgba(0,0,0,0.45)] drop-shadow-[0_0_35px_rgba(255,222,0,0.22)]"
+              className="absolute inset-0 w-full h-full object-cover object-[78%_center] lg:object-[82%_18px] lg:translate-x-12 xl:translate-x-20 pointer-events-none select-none opacity-0 transition-opacity duration-75"
             />
           </div>
 
@@ -350,9 +395,9 @@ export default function LoginPage() {
                   : "text-zinc-950 drop-shadow-[0_2px_8px_rgba(255,255,255,0.9)]"
               }`}
             >
-              Construa e Jogue <br />
+              Sua próxima história <br />
               <span className="bg-gradient-to-r from-[#FFDE00] via-[#FFE54D] to-amber-500 bg-clip-text text-transparent drop-shadow-[0_2px_15px_rgba(255,222,0,0.3)]">
-                No Renplay Launcher
+                começa aqui.
               </span>
             </h2>
 
@@ -363,11 +408,11 @@ export default function LoginPage() {
                   : "text-zinc-700 drop-shadow-[0_1px_6px_rgba(255,255,255,0.9)]"
               }`}
             >
-              Sua conta unificada para explorar histórias interativas, sincronizar saves na nuvem e publicar projetos no ecossistema Ren&apos;Py.
+              Entre para explorar jogos, sincronizar seus saves e acompanhar seus projetos no ecossistema Ren&apos;Py.
             </p>
 
             {/* Destaques Rápidos em Chips */}
-            <div className="flex flex-wrap items-center gap-2 pt-6">
+            <div className="flex flex-wrap items-center gap-2 pt-5">
               <span
                 className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border backdrop-blur-md flex items-center gap-1.5 ${
                   isDark
@@ -375,7 +420,7 @@ export default function LoginPage() {
                     : "bg-white/80 border-zinc-200/80 text-zinc-800 shadow-xs"
                 }`}
               >
-                ⚡ Downloads em Alta Velocidade
+                <ArrowRightIcon className="w-3.5 h-3.5 text-[#FFDE00]" /> Instalação rápida
               </span>
               <span
                 className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border backdrop-blur-md flex items-center gap-1.5 ${
@@ -384,7 +429,7 @@ export default function LoginPage() {
                     : "bg-white/80 border-zinc-200/80 text-zinc-800 shadow-xs"
                 }`}
               >
-                ☁️ Saves na Nuvem
+                <CloudIcon className="text-[#FFDE00]" /> Saves sincronizados
               </span>
             </div>
           </div>
@@ -394,7 +439,7 @@ export default function LoginPage() {
         {/* LADO DIREITO: FORMULÁRIO COM DESTAQUE TOTAL E ELEGÂNCIA       */}
         {/* ============================================================ */}
         <div
-          className={`w-full lg:w-[44%] flex items-center justify-center p-6 sm:p-12 z-20 relative animate-slide-in-right transition-colors duration-500 overflow-hidden lg:border-l ${
+          className={`order-1 lg:order-2 w-full lg:w-[44%] flex items-center justify-center p-5 sm:p-12 z-20 relative animate-slide-in-right transition-colors duration-500 overflow-hidden lg:border-l ${
             isDark
               ? "bg-[#090A10] bg-[radial-gradient(ellipse_85%_85%_at_50%_50%,#151724_0%,#090A10_85%)] lg:border-white/[0.05]"
               : "bg-[#F7F8FA] bg-[radial-gradient(ellipse_85%_85%_at_50%_50%,#FFFFFF_0%,#EDF0F5_85%)] lg:border-black/[0.06]"
@@ -471,8 +516,8 @@ export default function LoginPage() {
             <span className="absolute right-[28%] bottom-[35%] w-1.5 h-1.5 rounded-full bg-yellow-200 shadow-[0_0_8px_#FFDE00] animate-ember-4" />
             <span className="absolute left-[45%] bottom-[12%] w-1.5 h-1.5 rounded-full bg-[#FFDE00] shadow-[0_0_8px_#FFDE00] animate-ember-2" />
             <span className="absolute right-[12%] bottom-[50%] w-1 h-1 rounded-full bg-amber-300 shadow-[0_0_6px_#F59E0B] animate-ember-1" />
-            <span className="absolute left-[72%] top-[22%] text-[#FFDE00] text-sm font-black select-none drop-shadow-[0_0_8px_rgba(255,222,0,0.85)] animate-pulse">✦</span>
-            <span className="absolute left-[20%] top-[28%] text-amber-300 text-xs font-black select-none drop-shadow-[0_0_6px_rgba(255,222,0,0.7)] animate-pulse" style={{ animationDelay: "1.8s" }}>✦</span>
+            <SparkIcon className="absolute left-[72%] top-[22%] w-3.5 h-3.5 text-[#FFDE00] drop-shadow-[0_0_8px_rgba(255,222,0,0.85)] animate-pulse" />
+            <SparkIcon className="absolute left-[20%] top-[28%] w-3 h-3 text-amber-300 drop-shadow-[0_0_6px_rgba(255,222,0,0.7)] animate-pulse" />
           </div>
 
           {/* ========================================================== */}
@@ -481,7 +526,7 @@ export default function LoginPage() {
           <div
             className={`w-full max-w-[430px] rounded-3xl p-8 sm:p-10 relative transition-all duration-300 backdrop-blur-2xl z-10 card-floating-element ${
               isDark
-                ? "bg-[#12141D]/92 border border-[#262B3D] shadow-[0_30px_90px_rgba(0,0,0,0.95),0_0_40px_rgba(255,222,0,0.06)] hover:border-[#FFDE00]/35"
+                ? "bg-[#12141D]/96 border border-[#262B3D] shadow-[0_24px_70px_rgba(0,0,0,0.8),0_0_30px_rgba(255,222,0,0.05)] hover:border-[#FFDE00]/35"
                 : "bg-white/95 border-2 border-zinc-200/90 shadow-[0_30px_80px_-15px_rgba(0,0,0,0.14),0_10px_30px_-10px_rgba(0,0,0,0.06)] hover:border-zinc-300"
             }`}
           >
@@ -539,7 +584,7 @@ export default function LoginPage() {
             ) : (
               <form onSubmit={handleLogin} className="space-y-4">
                 {errorMessage && (
-                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-bold text-center">
+                  <div role="alert" aria-live="polite" className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-bold text-center">
                     {errorMessage}
                   </div>
                 )}
@@ -561,11 +606,12 @@ export default function LoginPage() {
                     <input
                       id="identifier"
                       type="text"
+                      autoComplete="username"
                       placeholder="nome@exemplo.com ou usuario"
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
                       disabled={loading}
-                      className={`w-full py-3.5 pl-11 pr-11 rounded-xl border-2 text-xs font-semibold text-center placeholder:text-center focus:outline-none transition-all duration-200 ${
+                      className={`w-full py-3.5 pl-11 pr-11 rounded-xl border-2 text-sm font-semibold focus:outline-none transition-all duration-200 ${
                         isDark
                           ? "bg-[#0D0E16] border-[#222533] text-white placeholder-zinc-500 focus:border-[#FFDE00] focus:ring-4 focus:ring-[#FFDE00]/15"
                           : "bg-zinc-50 border-zinc-300 text-zinc-950 placeholder-zinc-400 focus:bg-white focus:border-zinc-950 focus:ring-4 focus:ring-amber-400/20 shadow-xs"
@@ -591,11 +637,12 @@ export default function LoginPage() {
                     <input
                       id="password"
                       type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
                       placeholder="••••••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={loading}
-                      className={`w-full py-3.5 pl-11 pr-14 text-center placeholder:text-center rounded-xl border-2 text-xs font-semibold focus:outline-none transition-all duration-200 ${
+                      className={`w-full py-3.5 pl-11 pr-14 rounded-xl border-2 text-sm font-semibold focus:outline-none transition-all duration-200 ${
                         isDark
                           ? "bg-[#0D0E16] border-[#222533] text-white placeholder-zinc-500 focus:border-[#FFDE00] focus:ring-4 focus:ring-[#FFDE00]/15"
                           : "bg-zinc-50 border-zinc-300 text-zinc-950 placeholder-zinc-400 focus:bg-white focus:border-zinc-950 focus:ring-4 focus:ring-amber-400/20 shadow-xs"
@@ -603,6 +650,8 @@ export default function LoginPage() {
                     />
                     <button
                       type="button"
+                      aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      aria-pressed={showPassword}
                       onClick={() => setShowPassword(!showPassword)}
                       className={`absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-extrabold cursor-pointer px-1 py-0.5 rounded transition-colors ${
                         isDark ? "text-zinc-400 hover:text-white" : "text-zinc-700 hover:text-black"
@@ -614,7 +663,7 @@ export default function LoginPage() {
                   <div className="flex justify-center pt-0.5">
                     <button
                       type="button"
-                      onClick={() => alert("Instruções de recuperação enviadas ao e-mail cadastrado.")}
+                      onClick={() => alert("O fluxo de recuperação de senha será disponibilizado em breve.")}
                       className={`text-[11px] font-extrabold cursor-pointer transition-colors ${
                         isDark
                           ? "text-[#FFDE00] hover:underline"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 /* ============================================================== */
 /* TIPAGENS DO DASHBOARD                                          */
@@ -220,11 +221,13 @@ function getVerificationBadge(level: number = 1) {
 /* COMPONENTE PRINCIPAL: DASHBOARD LIMPO E MODERNO                */
 /* ============================================================== */
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "games" | "users" | "settings">("overview");
+  const pathname = usePathname();
+  const routeTab = pathname === "/dashboard/jogos" ? "games" : pathname === "/dashboard/configuracoes" ? "settings" : "overview";
+  const [activeTab] = useState<"overview" | "games" | "users" | "settings">(routeTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Lista de Jogos do Catálogo (Inicia vazia conforme solicitado)
+  // Jogos carregados do catálogo persistido no banco.
   const [games, setGames] = useState<GameItem[]>([]);
 
   // Lista de Membros da Equipe sincronizada com o banco
@@ -249,6 +252,30 @@ export default function DashboardPage() {
         }
       })
       .catch((err) => console.error("Erro ao sincronizar usuários:", err));
+
+    fetch("/api/games?includeAll=true")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!Array.isArray(data.games)) return;
+        setGames(
+          data.games.map((game: { id: string; name: string; developer?: string; category?: string; genre?: string; version?: string; coverImage?: string; downloadUrl?: string; status?: string; updated_at?: string; created_at?: string }) => ({
+            id: game.id,
+            title: game.name,
+            developer: game.developer || "Desenvolvedor não informado",
+            category: game.category || "Geral",
+            genre: game.genre || "Visual Novel",
+            version: game.version || "1.0.0",
+            engine: "Ren'Py",
+            adult: false,
+            coverUrl: game.coverImage || "/images/so-much-to-love-cover.jpg",
+            downloadUrl: game.downloadUrl || "",
+            downloads: 0,
+            status: game.status === "PUBLISHED" ? "PUBLISHED" : game.status === "PENDING_REVIEW" ? "PENDING_REVIEW" : "DRAFT",
+            lastUpdate: new Date(game.updated_at || game.created_at || Date.now()).toLocaleDateString("pt-BR"),
+          }))
+        );
+      })
+      .catch((err) => console.error("Erro ao sincronizar jogos:", err));
   }, []);
 
   const showToast = (msg: string) => {
@@ -256,11 +283,16 @@ export default function DashboardPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleDeleteGame = (id: string, name: string) => {
-    if (confirm(`Deseja remover "${name}" do catálogo?`)) {
-      setGames(games.filter((g) => g.id !== id));
-      showToast(`Jogo removido com sucesso.`);
+  const handleDeleteGame = async (id: string, name: string) => {
+    if (!confirm(`Deseja remover "${name}" do catálogo?`)) return;
+    const response = await fetch(`/api/games?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      showToast(data.error || "Não foi possível excluir o jogo.");
+      return;
     }
+    setGames((current) => current.filter((g) => g.id !== id));
+    showToast("Jogo removido com sucesso.");
   };
 
   const filteredGames = games.filter(
@@ -271,7 +303,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0d14] text-zinc-100 font-sans flex flex-col justify-between">
+    <div className="min-h-screen bg-[#090A0F] text-[#F5F5F5] font-sans flex flex-col justify-between">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl bg-[#FFDE00] text-black font-black text-xs shadow-2xl animate-fade-in-up">
@@ -280,7 +312,7 @@ export default function DashboardPage() {
       )}
 
       {/* HEADER PRINCIPAL */}
-      <header className="border-b border-zinc-800/80 bg-[#0d111a]/95 backdrop-blur-md sticky top-0 z-40">
+      <header className="border-b border-[#29292F] bg-[#090A0F]/90 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-[1500px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2 group">
@@ -301,7 +333,7 @@ export default function DashboardPage() {
             </Link>
             <Link
               href="/portal"
-              className="text-xs font-bold px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
+              className="text-xs font-bold px-3 py-2 rounded-lg border border-[#29292F] bg-[#12141D] hover:border-[#FFDE00]/60 text-zinc-300 transition-colors"
             >
               Minha Conta
             </Link>
@@ -312,21 +344,21 @@ export default function DashboardPage() {
       {/* CORPO DO DASHBOARD */}
       <div className="flex-1 max-w-[1500px] w-full mx-auto flex flex-col md:flex-row">
         {/* SIDEBAR LIMPA */}
-        <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-zinc-800/80 p-5 shrink-0 space-y-6">
+        <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-[#29292F] p-5 shrink-0 space-y-6 bg-[#0D0E14]/70">
           <div className="space-y-1">
             <span className="text-[10px] font-black uppercase tracking-widest text-[#FFDE00] px-3">
               NAVEGAÇÃO
             </span>
             <nav className="space-y-1 pt-1">
               {[
-                { id: "overview", label: "Visão Geral", icon: <GridIcon /> },
-                { id: "games", label: "Catálogo de Jogos", icon: <GamepadIcon />, count: games.length },
-                { id: "users", label: "Equipe & Acessos", icon: <UsersIcon />, count: users.length },
-                { id: "settings", label: "Configurações", icon: <SettingsIcon /> },
+                { id: "overview", label: "Visão Geral", href: "/dashboard", icon: <GridIcon /> },
+                { id: "games", label: "Catálogo de Jogos", href: "/dashboard/jogos", icon: <GamepadIcon />, count: games.length },
+                { id: "users", label: "Equipe & Acessos", href: "/dashboard/usuarios", icon: <UsersIcon />, count: users.length },
+                { id: "settings", label: "Configurações", href: "/dashboard/configuracoes", icon: <SettingsIcon /> },
               ].map((tab) => (
-                <button
+                <Link
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  href={tab.href}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === tab.id
                       ? "bg-[#FFDE00] text-black font-black shadow-md shadow-amber-500/10"
@@ -346,12 +378,12 @@ export default function DashboardPage() {
                       {tab.count}
                     </span>
                   )}
-                </button>
+                </Link>
               ))}
             </nav>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#141a26] border border-zinc-800/80 space-y-2">
+          <div className="p-4 rounded-2xl bg-[#12141D] border border-[#29292F] space-y-2">
             <div className="flex items-center justify-between text-xs font-bold text-zinc-300">
               <span>Status dos Servidores</span>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -378,7 +410,7 @@ export default function DashboardPage() {
                 </div>
 
                 <Link
-                  href="/dashboard/publish"
+                  href="/dashboard/jogos/publish"
                   className="btn-epic-primary py-2.5 px-5 rounded-xl cursor-pointer gap-2 font-black text-xs shadow-lg flex items-center shrink-0"
                 >
                   <PlusIcon />
@@ -386,15 +418,34 @@ export default function DashboardPage() {
                 </Link>
               </div>
 
+              <section className="relative isolate overflow-hidden rounded-[2rem] border border-[#FFDE00]/25 bg-[linear-gradient(120deg,#171506_0%,#12141D_52%,#090A0F_100%)] px-6 py-7 sm:px-8 sm:py-8 shadow-[0_20px_55px_rgba(0,0,0,0.22)]">
+                <div className="absolute -right-10 -top-20 h-64 w-64 rounded-full bg-[#FFDE00]/10 blur-3xl" aria-hidden="true" />
+                <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-[#FFDE00]/8 to-transparent" aria-hidden="true" />
+                <div className="relative z-10 max-w-xl space-y-3">
+                  <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">
+                    <span className="h-2 w-2 rounded-full bg-[#FFDE00] shadow-[0_0_12px_#FFDE00]" />
+                    Central RenPlay
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Tudo pronto para a próxima história.</h2>
+                  <p className="max-w-lg text-sm leading-relaxed text-zinc-400">Acompanhe o catálogo, organize a equipe e mantenha o ecossistema RenPlay em movimento.</p>
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <Link href="/dashboard/jogos" className="rounded-xl bg-[#FFDE00] px-4 py-2.5 text-xs font-black uppercase tracking-wide text-black hover:bg-[#ffe84d] transition-colors">Ver catálogo</Link>
+                    <Link href="/dashboard/usuarios" className="rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-xs font-black uppercase tracking-wide text-zinc-200 hover:border-[#FFDE00]/50 hover:text-[#FFDE00] transition-colors">Gerenciar equipe</Link>
+                  </div>
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/Rina_open.png" alt="Rina, personagem do RenPlay" className="pointer-events-none absolute -right-3 -bottom-16 hidden h-[310px] w-[280px] object-contain object-bottom drop-shadow-[0_15px_30px_rgba(0,0,0,0.55)] sm:block" />
+              </section>
+
               {/* CARDS DE MÉTRICAS */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                   { title: "Total de Jogos", val: games.length.toString(), desc: "Títulos cadastrados no launcher", color: "text-[#FFDE00]" },
-                  { title: "Downloads Totais", val: games.reduce((acc, g) => acc + (g.downloads || 0), 0).toLocaleString(), desc: "Instalações solicitadas", color: "text-emerald-400" },
-                  { title: "Equipe Ativa", val: users.length.toString(), desc: "Criadores e moderadores", color: "text-blue-400" },
-                  { title: "CDN Uptime", val: "100%", desc: "Pixeldrain e Cloudflare R2", color: "text-purple-400" },
+                  { title: "Downloads Totais", val: games.reduce((acc, g) => acc + (g.downloads || 0), 0).toLocaleString(), desc: "Instalações solicitadas", color: "text-[#FFDE00]" },
+                  { title: "Equipe Ativa", val: users.length.toString(), desc: "Criadores e moderadores", color: "text-zinc-200" },
+                  { title: "CDN Uptime", val: "100%", desc: "Pixeldrain e Cloudflare R2", color: "text-zinc-200" },
                 ].map((kpi, idx) => (
-                  <div key={idx} className="p-5 rounded-2xl bg-[#141a26] border border-zinc-800 space-y-1">
+                  <div key={idx} className="p-5 rounded-2xl bg-[#12141D] border border-[#29292F] space-y-1 hover:border-[#FFDE00]/30 transition-colors">
                     <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{kpi.title}</span>
                     <div className={`text-2xl font-black ${kpi.color}`}>{kpi.val}</div>
                     <p className="text-[10px] text-zinc-500 font-medium">{kpi.desc}</p>
@@ -403,17 +454,17 @@ export default function DashboardPage() {
               </div>
 
               {/* ÚLTIMOS LANÇAMENTOS */}
-              <div className="p-6 rounded-2xl bg-[#141a26] border border-zinc-800 space-y-4">
+              <div className="p-6 rounded-2xl bg-[#12141D] border border-[#29292F] space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-black text-sm uppercase tracking-wider text-zinc-200">
                     Jogos em Destaque no Catálogo
                   </h3>
-                  <button
-                    onClick={() => setActiveTab("games")}
+                  <Link
+                    href="/dashboard/jogos"
                     className="text-xs font-bold text-[#FFDE00] hover:underline cursor-pointer"
                   >
                     Ver Todos →
-                  </button>
+                  </Link>
                 </div>
 
                 {games.length === 0 ? (
@@ -422,7 +473,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-bold text-zinc-400">Nenhum jogo no catálogo ainda</p>
                     <p className="text-xs text-zinc-600">O catálogo está vazio. Cadastre uma nova visual novel para começar.</p>
                     <Link
-                      href="/dashboard/publish"
+                      href="/dashboard/jogos/publish"
                       className="mt-3 text-xs font-bold px-4 py-2 rounded-xl bg-[#FFDE00] text-black hover:bg-[#ffe53b] transition-all cursor-pointer shadow-md"
                     >
                       + Publicar Primeiro Jogo
@@ -433,7 +484,7 @@ export default function DashboardPage() {
                     {games.slice(0, 2).map((game) => (
                       <div
                         key={game.id}
-                        className="p-4 rounded-xl bg-[#0d111a] border border-zinc-800 flex gap-4 items-center"
+                        className="p-4 rounded-xl bg-[#090A0F] border border-[#29292F] flex gap-4 items-center"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -480,13 +531,13 @@ export default function DashboardPage() {
                       placeholder="Buscar jogo..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="py-2 pl-9 pr-4 rounded-xl text-xs bg-[#141a26] border border-zinc-700 text-white placeholder-zinc-500 outline-none focus:border-[#FFDE00]"
+                      className="py-2 pl-9 pr-4 rounded-xl text-xs bg-[#12141D] border border-[#29292F] text-white placeholder-zinc-500 outline-none focus:border-[#FFDE00] focus:ring-2 focus:ring-[#FFDE00]/10"
                     />
                     <SearchIcon className="w-3.5 h-3.5 absolute left-3 top-3 text-zinc-400 pointer-events-none" />
                   </div>
 
                   <Link
-                    href="/dashboard/publish"
+                    href="/dashboard/jogos/publish"
                     className="btn-epic-primary py-2 px-4 rounded-xl cursor-pointer gap-2 font-black text-xs shadow-lg flex items-center shrink-0"
                   >
                     <PlusIcon />
@@ -496,11 +547,11 @@ export default function DashboardPage() {
               </div>
 
               {/* TABELA DE JOGOS LIMPA */}
-              <div className="rounded-2xl border border-zinc-800 bg-[#141a26] overflow-hidden shadow-xl">
+              <div className="rounded-2xl border border-[#29292F] bg-[#12141D] overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-zinc-800 bg-[#0d111a] text-zinc-400 uppercase text-[10px] font-black tracking-wider">
+                      <tr className="border-b border-[#29292F] bg-[#090A0F] text-zinc-400 uppercase text-[10px] font-black tracking-wider">
                         <th className="p-4">Jogo</th>
                         <th className="p-4">Versão</th>
                         <th className="p-4">Engine</th>
@@ -599,10 +650,10 @@ export default function DashboardPage() {
                 </Link>
               </div>
 
-              <div className="rounded-2xl border border-zinc-800 bg-[#141a26] overflow-hidden shadow-xl">
+              <div className="rounded-2xl border border-[#29292F] bg-[#12141D] overflow-hidden shadow-xl">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-zinc-800 bg-[#0d111a] text-zinc-400 uppercase text-[10px] font-black tracking-wider">
+                    <tr className="border-b border-[#29292F] bg-[#090A0F] text-zinc-400 uppercase text-[10px] font-black tracking-wider">
                       <th className="p-4">Usuário</th>
                       <th className="p-4">E-mail</th>
                       <th className="p-4">Função</th>
@@ -669,7 +720,7 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="p-6 rounded-2xl bg-[#141a26] border border-zinc-800 space-y-4">
+              <div className="p-6 rounded-2xl bg-[#12141D] border border-[#29292F] space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
                     Nome Oficial da Plataforma
@@ -677,7 +728,7 @@ export default function DashboardPage() {
                   <input
                     type="text"
                     defaultValue="RenPlay Launcher"
-                    className="w-full px-4 py-2.5 rounded-xl border border-zinc-700 bg-[#0d111a] text-white text-xs outline-none focus:border-[#FFDE00]"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#29292F] bg-[#090A0F] text-white text-xs outline-none focus:border-[#FFDE00] focus:ring-2 focus:ring-[#FFDE00]/10"
                   />
                 </div>
 
@@ -688,7 +739,7 @@ export default function DashboardPage() {
                   <input
                     type="text"
                     defaultValue="1.0.0"
-                    className="w-full px-4 py-2.5 rounded-xl border border-zinc-700 bg-[#0d111a] text-white text-xs outline-none focus:border-[#FFDE00]"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#29292F] bg-[#090A0F] text-white text-xs outline-none focus:border-[#FFDE00] focus:ring-2 focus:ring-[#FFDE00]/10"
                   />
                 </div>
 
@@ -707,7 +758,7 @@ export default function DashboardPage() {
       </div>
 
       {/* FOOTER */}
-      <footer className="py-4 text-center text-[11px] font-semibold border-t border-zinc-800/80 bg-[#0d111a] text-zinc-500">
+      <footer className="py-4 text-center text-[11px] font-semibold border-t border-[#29292F] bg-[#090A0F] text-zinc-500">
         © 2026 RenPlay Studios. Painel de Controle e Distribuição Oficial.
       </footer>
     </div>
