@@ -77,6 +77,18 @@ npm run dev
 
 É necessário configurar `DATABASE_URL` no `.env`. Depois de alterar banco, reinicie o servidor Next.js para limpar conexões e cache de desenvolvimento.
 
+## Integração com o launcher
+
+O site é a fonte central de autenticação e catálogo. O launcher usa as rotas `/api/v1`:
+
+- `/api/v1/auth/desktop/authorize`, `/token`, `/refresh`, `/me` e `/logout` para o login compartilhado via PKCE.
+- `/api/v1/games` para buscar os jogos publicados e a contagem de usuários ativos.
+- `/api/v1/library`, `/api/v1/reports` e `/api/v1/translations` para biblioteca e recursos da conta.
+
+Configure `LAUNCHER_API_KEY` no ambiente de produção do site e a mesma chave em `launcher/release-config.json`. A chave não deve ser colocada no código do site, em documentos públicos ou no `.env` versionado. Em desenvolvimento local, a API funciona sem a chave.
+
+O login do site aceita somente `ADMIN`, `MODERATOR`, `TRANSLATOR` e `DEVELOPER`. O login do launcher aceita qualquer conta ativa, incluindo `USER` e `VIP`. Ambos usam `rp_users`, `rp_user_roles` e `rp_sessions`, mantendo a mesma identidade e as mesmas regras de banimento.
+
 ## Banco de teste
 
 Para um reset completo e controlado, use `node scripts/reset-database.mjs --confirm-reset`. Esse comando apaga as tabelas `rp_*` e reaplica todas as migrações. Depois, `node scripts/seed-test-accounts.mjs` cria as contas de teste documentadas em `CONTAS_TESTE.md`.

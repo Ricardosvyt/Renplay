@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       identifier?: unknown;
       password?: unknown;
       rememberMe?: unknown;
+      client?: unknown;
     };
     const identifier = typeof body.identifier === "string" ? normalizeIdentifier(body.identifier) : "";
     const password = typeof body.password === "string" ? body.password : "";
@@ -100,6 +101,16 @@ export async function POST(request: Request) {
         );
         await client.query("COMMIT");
         return invalidCredentials();
+      }
+
+      const siteRoles = await client.query<{ role: string }>(
+        "SELECT role FROM rp_user_roles WHERE user_id = $1",
+        [user.id]
+      );
+      const canAccessSite = siteRoles.rows.some(({ role }) => ["ADMIN", "MODERATOR", "TRANSLATOR", "DEVELOPER"].includes(role));
+      if (body.client !== "launcher" && !canAccessSite) {
+        await client.query("ROLLBACK");
+        return NextResponse.json({ error: "Esta área é exclusiva para administradores, moderadores, tradutores e desenvolvedores." }, { status: 403 });
       }
 
       await client.query("DELETE FROM rp_limits WHERE key = $1", [limitKey]);
