@@ -350,7 +350,7 @@ export default function LoginPage() {
           />
 
           {/* Personagem Anime (Rina) Posicionada à Direita para Deixar Espaço Limpo para o Texto */}
-          <div className="absolute inset-x-0 top-3 sm:top-6 -bottom-6 z-10 pointer-events-none overflow-hidden flex items-center justify-end rina-floating-element">
+          <div className="absolute inset-x-0 top-3 sm:top-6 bottom-0 z-10 pointer-events-none overflow-hidden flex items-center justify-end rina-floating-element">
             <div
               aria-hidden="true"
               className="absolute right-[12%] top-[18%] w-[42%] h-[58%] rounded-full bg-[#FFDE00]/10 blur-[80px]"
