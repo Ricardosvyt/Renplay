@@ -202,10 +202,22 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setErrorMessage("");
 
-    if (!identifier.trim() || !password.trim()) {
+    const cleanIdentifier = identifier.trim();
+    if (!cleanIdentifier || !password) {
       setErrorMessage("Por favor, preencha o e-mail/usuário e a senha.");
+      return;
+    }
+
+    if (cleanIdentifier.length > 254) {
+      setErrorMessage("O e-mail ou nome de usuário é muito longo.");
+      return;
+    }
+
+    if (password.length > 128) {
+      setErrorMessage("A senha informada excede o limite permitido.");
       return;
     }
 
@@ -216,7 +228,7 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ identifier, password, rememberMe }),
+        body: JSON.stringify({ identifier: cleanIdentifier, password, rememberMe }),
       });
       const data = (await response.json().catch(() => ({}))) as { error?: string };
 
@@ -229,7 +241,7 @@ export default function LoginPage() {
       router.replace("/dashboard");
       router.refresh();
     } catch {
-      setErrorMessage("Não foi possível conectar ao servidor. Verifique se o banco de dados está configurado e tente novamente.");
+      setErrorMessage("Não foi possível conectar ao servidor. Tente novamente em instantes.");
     } finally {
       setLoading(false);
     }
@@ -609,6 +621,7 @@ export default function LoginPage() {
                       id="identifier"
                       type="text"
                       autoComplete="username"
+                      maxLength={254}
                       placeholder="nome@exemplo.com ou usuario"
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
@@ -640,6 +653,7 @@ export default function LoginPage() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
+                      maxLength={128}
                       placeholder="••••••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}

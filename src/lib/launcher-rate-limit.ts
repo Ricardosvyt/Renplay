@@ -17,3 +17,12 @@ export async function allowLauncherAuth(request: Request, action: string, identi
   }
   return true;
 }
+
+export async function clearLauncherAuthRateLimit(request: Request, action: string, identifier: string) {
+  try {
+    const key = `desktop:${action}:identity:${createHash("sha256").update(identifier).digest("hex")}`;
+    await getDb().query("DELETE FROM rp_limits WHERE key = $1", [key]);
+  } catch {
+    // ignore
+  }
+}

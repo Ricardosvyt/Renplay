@@ -170,8 +170,66 @@ export async function hashPassword(password: string): Promise<string> {
   return await argon2.hash(password, { type: argon2.argon2id });
 }
 
+export const DUMMY_ARGON2_HASH = "$argon2id$v=19$m=65536,p=4,t=3$nKs7B3y1Mndc5cYf5LEZjQ$f6vDBJrQ4YdqWnb72K8Sx7tD1v1vCIQGLJBAfqsM8zE";
+
+export class AuthInputError extends Error {}
+
+export async function readAuthJsonBody<T>(request: Request, maxBytes = 8192): Promise<T> {
+  const contentType = request.headers.get("content-type")?.split(";")[0]?.trim()?.toLowerCase();
+  if (contentType && contentType !== "application/json") {
+    throw new AuthInputError("Envie os dados no formato JSON.");
+  }
+  const contentLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    throw new AuthInputError("Corpo da requisição excede o limite permitido.");
+  }
+  const reader = request.body?.getReader();
+  if (!reader) {
+    throw new AuthInputError("Corpo da requisição ausente.");
+  }
+  let size = 0;
+  const chunks: Uint8Array[] = [];
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) {
+        await reader.cancel();
+        throw new AuthInputError("Corpo da requisição excede o limite permitido.");
+      }
+      chunks.push(value);
+    }
+    try {
+      return JSON.parse(Buffer.concat(chunks).toString("utf8")) as T;
+    } catch {
+      throw new AuthInputError("JSON malformado ou inválido.");
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export async function verifyPasswordHash(password: string, hash: string): Promise<boolean> {
-  if (hash && hash.startsWith("$argon2")) {
+  if (typeof password !== "string" || !password) return false;
+  const isArgon = Boolean(hash && hash.startsWith("$argon2"));
+  const isBcrypt = Boolean(
+    hash &&
+    (hash.startsWith("$2a$") || hash.startsWith("$2b$") || hash.startsWith("$2y$") || hash.startsWith("$2$"))
+  );
+
+  // If user does not exist or has invalid hash, perform dummy Argon2 verification to prevent timing attack enumeration
+  if (!isArgon && !isBcrypt) {
+    try {
+      const argon2 = await import("argon2");
+      await argon2.verify(DUMMY_ARGON2_HASH, password);
+    } catch {
+      // ignore
+    }
+    return false;
+  }
+
+  if (isArgon) {
     try {
       const argon2 = await import("argon2");
       return await argon2.verify(hash, password);
@@ -179,6 +237,11 @@ export async function verifyPasswordHash(password: string, hash: string): Promis
       return false;
     }
   }
-  const bcrypt = await import("bcryptjs");
-  return await bcrypt.compare(password, hash);
+
+  try {
+    const bcrypt = await import("bcryptjs");
+    return await bcrypt.compare(password, hash);
+  } catch {
+    return false;
+  }
 }

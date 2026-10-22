@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "check": "tsc --noEmit",
-    "test": "node --test scripts/test-registration.cjs scripts/test-security.cjs scripts/test-password-recovery.cjs"
+    "test": "node --test scripts/test-registration.cjs scripts/test-security.cjs scripts/test-password-recovery.cjs scripts/test-login-security.cjs"
   },
   "dependencies": {
     "argon2": "^0.45.1",
