@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -13,8 +13,6 @@ function RecuperarContent() {
   const isCodeValid = /^\d{6}$/.test(rawCode);
   const isEmailValid = rawEmail.includes("@") && rawEmail.length <= 254;
 
-  const [hasAttemptedLaunch, setHasAttemptedLaunch] = useState(false);
-
   const deepLinkUrl = isCodeValid
     ? `renplay://reset-password?code=${rawCode}${isEmailValid ? `&email=${encodeURIComponent(rawEmail)}` : ""}`
     : "";
@@ -23,33 +21,48 @@ function RecuperarContent() {
     ? `/verify-reset-code?code=${rawCode}${isEmailValid ? `&email=${encodeURIComponent(rawEmail)}` : ""}`
     : "/forgot-password";
 
+  const [hasPrompted, setHasPrompted] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  function triggerLauncherOpen() {
+    if (!deepLinkUrl) return;
+    try {
+      // Trigger via window.location.assign to provoke browser's "Abrir RenPlay?" permission modal
+      window.location.assign(deepLinkUrl);
+    } catch {
+      // Fallback to iframe if blocked
+      if (iframeRef.current) {
+        iframeRef.current.src = deepLinkUrl;
+      }
+    }
+  }
+
   useEffect(() => {
-    if (isCodeValid && !hasAttemptedLaunch) {
-      setHasAttemptedLaunch(true);
-      // Small delay to allow page render before triggering OS protocol prompt
+    if (isCodeValid && !hasPrompted) {
+      setHasPrompted(true);
+      // Immediate trigger on mount to invoke the browser's "Abrir RenPlay?" permission dialog
       const timer = setTimeout(() => {
-        try {
-          window.location.href = deepLinkUrl;
-        } catch {
-          // Protocol launch ignored or blocked by browser settings
-        }
-      }, 400);
+        triggerLauncherOpen();
+      }, 150);
       return () => clearTimeout(timer);
     }
-  }, [isCodeValid, deepLinkUrl, hasAttemptedLaunch]);
+  }, [isCodeValid, hasPrompted, deepLinkUrl]);
 
   return (
-    <main className="min-h-screen bg-[#07080B] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-[#FFDE00]/5 blur-[120px] pointer-events-none rounded-full" />
+    <main className="min-h-screen bg-[#07080B] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
+      {/* Hidden iframe for protocol invocation without navigation flash */}
+      <iframe ref={iframeRef} className="hidden" aria-hidden="true" />
 
-      {/* Main Container Card */}
+      {/* Background Glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[540px] h-[320px] bg-[#FFDE00]/5 blur-[130px] pointer-events-none rounded-full" />
+
+      {/* Card Container */}
       <div className="w-full max-w-md bg-[#11131C] border border-[#202434] rounded-2xl shadow-2xl overflow-hidden relative z-10">
         {/* Top Gold Gradient Bar */}
         <div className="h-1 w-full bg-gradient-to-r from-[#FFE54D] via-[#FFDE00] to-[#D4A000]" />
 
         <div className="p-8 text-center">
-          {/* Logo */}
+          {/* Official Site Logo */}
           <div className="mb-6 flex justify-center">
             <Link href="/" className="inline-block transition-transform hover:scale-105">
               <Image
@@ -65,55 +78,51 @@ function RecuperarContent() {
 
           {isCodeValid ? (
             <>
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFDE00]/10 border border-[#FFDE00]/30 text-[#FFDE00] text-xs font-semibold uppercase tracking-wider mb-4">
-                <span className="w-2 h-2 rounded-full bg-[#FFDE00] animate-pulse" />
-                Recuperação de Conta
+              {/* Animated Radar Icon */}
+              <div className="relative w-16 h-16 mx-auto mb-5 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-[#FFDE00]/10 border border-[#FFDE00]/30 animate-ping opacity-75" />
+                <div className="relative w-14 h-14 rounded-full bg-[#181B27] border border-[#FFDE00]/40 flex items-center justify-center text-[#FFDE00] text-2xl shadow-lg shadow-[#FFDE00]/10">
+                  <svg className="w-7 h-7 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
               </div>
 
-              <h1 className="text-2xl font-extrabold tracking-tight text-white mb-2">
-                Abrindo o Launcher…
+              <h1 className="text-2xl font-black tracking-tight text-white mb-2">
+                Abrindo o RenPlay…
               </h1>
 
-              <p className="text-sm text-slate-400 mb-6 leading-relaxed">
-                Estamos iniciando o <strong>RenPlay Launcher</strong> no seu computador para redefinir sua senha com segurança.
+              <p className="text-sm text-slate-300 mb-2 leading-relaxed">
+                Clique em <strong className="text-[#FFDE00]">"Abrir RenPlay"</strong> na janela de permissão que o navegador exibiu no topo.
               </p>
 
-              {/* Code Highlight Box */}
-              <div className="bg-gradient-to-b from-[#0A0C14] to-[#07080D] border border-[#FFDE00]/50 rounded-xl p-4 mb-6 shadow-inner">
-                <span className="text-[10px] font-bold text-[#FFDE00] uppercase tracking-widest block mb-1">
-                  Seu Código de 6 Dígitos
-                </span>
-                <span className="text-3xl font-black tracking-[0.25em] text-white font-mono pl-[0.25em]">
-                  {rawCode}
-                </span>
-              </div>
+              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                O aplicativo abrirá diretamente na tela para criar sua nova senha.
+              </p>
 
-              {/* Actions */}
+              {/* Action Buttons */}
               <div className="flex flex-col gap-3">
-                <a
-                  href={deepLinkUrl}
-                  className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-b from-[#FFE54D] via-[#FFDE00] to-[#D4A000] text-[#080A0F] font-bold text-sm tracking-wide shadow-lg shadow-[#FFDE00]/20 hover:brightness-105 active:scale-[0.98] transition-all text-center"
+                <button
+                  type="button"
+                  onClick={triggerLauncherOpen}
+                  className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-b from-[#FFE54D] via-[#FFDE00] to-[#D4A000] text-[#080A0F] font-bold text-sm tracking-wide shadow-lg shadow-[#FFDE00]/25 hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer"
                 >
-                  Abrir no Launcher RenPlay
-                </a>
+                  Abrir Launcher Novamente
+                </button>
 
                 <Link
                   href={webVerifyUrl}
-                  className="w-full py-3 px-6 rounded-xl bg-[#171A27] hover:bg-[#1E2234] border border-[#262B3F] text-slate-300 font-semibold text-sm transition-all text-center"
+                  className="w-full py-2.5 px-4 text-xs font-semibold text-slate-400 hover:text-white transition-colors text-center"
                 >
-                  Continuar pelo Navegador
+                  Não tem o launcher ou está no celular? Redefinir pelo navegador
                 </Link>
               </div>
 
-              {/* Security Hint */}
-              <div className="mt-6 pt-5 border-t border-[#1C1F2D] text-left">
-                <div className="flex items-start gap-2.5 text-xs text-slate-400 leading-relaxed">
-                  <span className="text-[#FFDE00] text-sm">⏱</span>
-                  <p>
-                    Este código expira em <strong>10 minutos</strong>. Se você não solicitou a alteração, ignore este link com tranquilidade.
-                  </p>
-                </div>
+              {/* Expiration Hint */}
+              <div className="mt-6 pt-4 border-t border-[#1C1F2D] text-center">
+                <span className="text-[11px] text-slate-500">
+                  ⏱ Este link é seguro e expira em 10 minutos.
+                </span>
               </div>
             </>
           ) : (
