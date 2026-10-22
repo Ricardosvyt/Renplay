@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, hashPassword, verifyPasswordHash } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { canManageUsers } from "@/lib/permissions";
 
 async function requireAdmin() {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Autenticação necessária." }, { status: 401 });
-    if (!user.roles.includes("ADMIN")) return NextResponse.json({ error: "Permissão insuficiente." }, { status: 403 });
+    if (!canManageUsers(user)) return NextResponse.json({ error: "Permissão insuficiente." }, { status: 403 });
     return null;
   } catch (error) {
     console.error("Falha ao validar administrador:", error);
@@ -65,11 +65,11 @@ export async function POST(request: NextRequest) {
     const password = body.password || "";
     const role = (body.role || "usuario").trim().toUpperCase();
     const allowed = new Set(["USER", "ADMIN", "MODERATOR", "DEVELOPER", "TRANSLATOR", "VIP"]);
-    if (!username || !email || password.length < 8 || !allowed.has(role)) return NextResponse.json({ error: "Preencha os dados corretamente. A senha deve ter pelo menos 8 caracteres." }, { status: 400 });
+    if (!username || !email || password.length < 12 || !allowed.has(role)) return NextResponse.json({ error: "Preencha os dados corretamente. A senha deve ter pelo menos 12 caracteres." }, { status: 400 });
     const client = await getDb().connect();
     try {
       await client.query("BEGIN");
-      const passwordHash = await bcrypt.hash(password, 12);
+      const passwordHash = await hashPassword(password);
       const result = await client.query("INSERT INTO rp_users (username, email, display_name, password_hash, active, email_verified) VALUES ($1, $2, $3, $4, true, true) RETURNING id, username, email, created_at", [username, email, username, passwordHash]);
       await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, 'USER') ON CONFLICT DO NOTHING", [result.rows[0].id]);
       if (role !== "USER") await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, $2)", [result.rows[0].id, role]);
@@ -96,7 +96,7 @@ export async function DELETE(request: NextRequest) {
     const admin = await getCurrentUser();
     if (!admin) return NextResponse.json({ error: "Sessão administrativa expirada." }, { status: 401 });
     const adminResult = await getDb().query<{ password_hash: string }>("SELECT password_hash FROM rp_users WHERE id = $1 AND active = true", [admin.id]);
-    const validPassword = await bcrypt.compare(body.password, adminResult.rows[0]?.password_hash || "");
+    const validPassword = await verifyPasswordHash(body.password, adminResult.rows[0]?.password_hash || "");
     if (!validPassword) return NextResponse.json({ error: "Senha de administrador incorreta." }, { status: 403 });
     if (id === admin.id) return NextResponse.json({ error: "Você não pode excluir a própria conta." }, { status: 400 });
     await getDb().query("DELETE FROM rp_users WHERE id = $1", [id]);
@@ -118,11 +118,14 @@ export async function PATCH(request: NextRequest) {
     const role = (body.role || "USER").trim().toUpperCase();
     const allowed = new Set(["USER", "ADMIN", "MODERATOR", "DEVELOPER", "TRANSLATOR", "VIP"]);
     if (!id || !username || !email || !allowed.has(role)) return NextResponse.json({ error: "Dados de perfil inválidos." }, { status: 400 });
+    if (body.password?.trim() && body.password.trim().length < 12) {
+      return NextResponse.json({ error: "A nova senha deve ter pelo menos 12 caracteres." }, { status: 400 });
+    }
 
     const client = await getDb().connect();
     try {
       await client.query("BEGIN");
-      const passwordHash = body.password?.trim() ? await bcrypt.hash(body.password.trim(), 12) : null;
+      const passwordHash = body.password?.trim() ? await hashPassword(body.password.trim()) : null;
       const updated = await client.query(
         `UPDATE rp_users SET username = $2, email = $3, active = $4, password_hash = COALESCE($5, password_hash), banned = $6, banned_until = $7, ban_reason = $8, updated_at = now()
           WHERE id = $1 RETURNING id, username, email, active, created_at`,

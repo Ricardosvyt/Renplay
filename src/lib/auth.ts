@@ -110,10 +110,8 @@ export async function getBearerUser(request: Request): Promise<AuthUser | null> 
 
 export { hashToken };
 
-export async function getCurrentUser(): Promise<AuthUser | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-
+export async function getUserBySessionToken(rawToken: string): Promise<AuthUser | null> {
+  if (!rawToken || typeof rawToken !== "string" || rawToken.length < 16) return null;
   const db = getDb();
   const result = await db.query<AuthUser>(
     `SELECT u.id,
@@ -134,10 +132,16 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
         AND (u.banned_until IS NULL OR u.banned_until <= now())
       GROUP BY u.id
       LIMIT 1`,
-    [hashToken(token)]
+    [hashToken(rawToken)]
   );
 
   return result.rows[0] ?? null;
+}
+
+export async function getCurrentUser(): Promise<AuthUser | null> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  return getUserBySessionToken(token);
 }
 
 export async function revokeCurrentSession() {
@@ -159,4 +163,22 @@ export async function revokeCurrentSession() {
     path: "/",
     maxAge: 0,
   });
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  const argon2 = await import("argon2");
+  return await argon2.hash(password, { type: argon2.argon2id });
+}
+
+export async function verifyPasswordHash(password: string, hash: string): Promise<boolean> {
+  if (hash && hash.startsWith("$argon2")) {
+    try {
+      const argon2 = await import("argon2");
+      return await argon2.verify(hash, password);
+    } catch {
+      return false;
+    }
+  }
+  const bcrypt = await import("bcryptjs");
+  return await bcrypt.compare(password, hash);
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db";
-import { createWebSession, getClientKey, normalizeIdentifier } from "@/lib/auth";
+import { createWebSession, getClientKey, normalizeIdentifier, verifyPasswordHash } from "@/lib/auth";
 
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -79,7 +78,7 @@ export async function POST(request: Request) {
         [identifier]
       );
       const user = result.rows[0];
-      const validPassword = await bcrypt.compare(password, user?.password_hash ?? DUMMY_HASH);
+      const validPassword = await verifyPasswordHash(password, user?.password_hash ?? DUMMY_HASH);
 
       if (user?.banned && (!user.banned_until || new Date(user.banned_until).getTime() > now)) {
         await client.query("ROLLBACK");

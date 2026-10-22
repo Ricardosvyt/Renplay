@@ -663,17 +663,16 @@ export default function LoginPage() {
                     </button>
                   </div>
                   <div className="flex justify-center pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => alert("O fluxo de recuperação de senha será disponibilizado em breve.")}
+                    <Link
+                      href="/forgot-password"
                       className={`text-[11px] font-extrabold cursor-pointer transition-colors ${
                         isDark
                           ? "text-[#FFDE00] hover:underline"
                           : "text-amber-600 hover:text-amber-700 underline"
                       }`}
                     >
-                      Esqueceu a senha?
-                    </button>
+                      Esqueceu sua senha?
+                    </Link>
                   </div>
                 </div>
 

@@ -12,7 +12,7 @@ RenPlay é uma plataforma para descobrir e distribuir visual novels. O site poss
 - React 19 e TypeScript.
 - Tailwind CSS e estilos globais em `src/app/globals.css`.
 - PostgreSQL hospedado no Neon, acessado com `pg`.
-- Senhas protegidas com `bcryptjs`.
+- Senhas protegidas com `argon2` (Argon2id) com compatibilidade retroativa para hashes legados em `bcryptjs`.
 - Sessões web guardadas no banco e identificadas pelo cookie HttpOnly `renplay_session`.
 
 ## Identidade visual
@@ -63,8 +63,11 @@ As migrações ficam em `db/migrations/` e devem ser aplicadas nesta ordem:
 2. `002_asset_validation.sql`
 3. `003_policies.sql`
 4. `004_auth_indexes.sql`
+5. `005_user_bans.sql`
+6. `006_username_case_insensitive_unique.sql`
+7. `007_password_resets.sql`
 
-As tabelas mais importantes são `rp_users`, `rp_user_roles`, `rp_sessions`, `rp_limits`, `rp_games`, `rp_assets`, `rp_builds`, `rp_translations` e `rp_audit`.
+As tabelas mais importantes são `rp_users`, `rp_user_roles`, `rp_sessions`, `rp_limits`, `rp_password_resets`, `rp_games`, `rp_assets`, `rp_builds`, `rp_translations` e `rp_audit`.
 
 O arquivo `db/schema.sql` é uma estrutura legada de referência para `staff_users`; o fluxo atual de login usa as tabelas `rp_*` das migrações.
 
