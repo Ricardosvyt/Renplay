@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { getDb } from "@/lib/db";
+import type { PoolClient } from "pg";
 
 export const SESSION_COOKIE = "renplay_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
@@ -56,11 +57,11 @@ export async function createWebSession(userId: string, rememberMe: boolean) {
   });
 }
 
-export async function createDesktopSession(userId: string) {
+export async function createDesktopSession(userId: string, client?: PoolClient) {
   const accessToken = randomBytes(32).toString("base64url");
   const refreshToken = randomBytes(48).toString("base64url");
   const expiresAt = new Date(Date.now() + DESKTOP_SESSION_TTL_SECONDS * 1000);
-  await getDb().query(
+  await (client ?? getDb()).query(
     `INSERT INTO rp_sessions (user_id, token_hash, refresh_hash, kind, device, expires_at, refresh_expires_at)
      VALUES ($1, $2, $3, 'desktop', 'launcher', $4, $5)`,
     [userId, hashToken(accessToken), hashToken(refreshToken), expiresAt, new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)]
