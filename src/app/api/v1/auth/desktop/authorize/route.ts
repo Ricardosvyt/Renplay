@@ -10,11 +10,11 @@ export async function POST(request: Request) {
     if (!identifier || !body.password || !body.challenge || !body.state || !body.redirectUri || !/^http:\/\/127\.0\.0\.1:\d+\/callback$/.test(body.redirectUri)) {
       return NextResponse.json({ error: { code: "INVALID_REQUEST", message: "Solicitação de autorização inválida." } }, { status: 400 });
     }
-    const result = await getDb().query<{ id: string; username: string; email: string; password_hash: string; active: boolean }>(
-      "SELECT id, username, email, password_hash, active FROM rp_users WHERE username = $1 OR email = $1 LIMIT 1", [identifier]
+    const result = await getDb().query<{ id: string; username: string; email: string; password_hash: string; active: boolean; banned: boolean; banned_until: Date | null }>(
+      "SELECT id, username, email, password_hash, active, banned, banned_until FROM rp_users WHERE username = $1 OR email = $1 LIMIT 1", [identifier]
     );
     const user = result.rows[0];
-    if (!user || !user.active || !(await bcrypt.compare(body.password, user.password_hash))) {
+    if (!user || !user.active || user.banned || (user.banned_until && new Date(user.banned_until).getTime() > Date.now()) || !(await bcrypt.compare(body.password, user.password_hash))) {
       return NextResponse.json({ error: { code: "INVALID_CREDENTIALS", message: "E-mail/usuário ou senha inválidos." } }, { status: 401 });
     }
     const code = createDesktopAuthorizationCode(user.id, body.challenge, body.redirectUri);
