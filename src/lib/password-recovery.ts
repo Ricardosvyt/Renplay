@@ -51,59 +51,108 @@ export function buildRecoveryEmailHtml(code: string): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RenPlay — Recuperação de Conta</title>
+  <style>
+    @media only screen and (max-width: 620px) {
+      .email-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 16px !important;
+      }
+      .email-inner-padding {
+        padding: 24px 18px !important;
+      }
+      .email-col-left {
+        width: 100% !important;
+        max-width: 100% !important;
+        display: block !important;
+        padding-right: 0 !important;
+        text-align: center !important;
+      }
+      .email-col-right {
+        width: 100% !important;
+        max-width: 100% !important;
+        display: block !important;
+        margin-top: 24px !important;
+        text-align: center !important;
+      }
+      .mascot-img {
+        max-width: 200px !important;
+        height: auto !important;
+        margin: 0 auto !important;
+      }
+      .code-display {
+        font-size: 32px !important;
+        letter-spacing: 6px !important;
+      }
+      .logo-center {
+        margin: 0 auto !important;
+      }
+    }
+  </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #08090C; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #08090C; padding: 40px 16px;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #08090C; padding: 36px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #12141D; border-radius: 20px; border: 1px solid #232738; overflow: hidden; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);">
-          <!-- Top decorative bar -->
+        <!-- Main Container Card -->
+        <table role="presentation" class="email-container" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 650px; background-color: #12141D; border-radius: 24px; border: 1px solid #232738; overflow: hidden; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);">
+          <!-- Top gold gradient bar -->
           <tr>
             <td height="4" style="background: linear-gradient(90deg, #FFE54D 0%, #FFDE00 50%, #D4A000 100%);"></td>
           </tr>
-          <!-- Header -->
+          <!-- Content Area -->
           <tr>
-            <td align="center" style="padding: 36px 32px 16px 32px;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+            <td class="email-inner-padding" style="padding: 36px 36px 28px 36px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td align="center">
-                    <span style="font-size: 26px; font-weight: 900; letter-spacing: 2px; color: #FFFFFF;">REN<span style="color: #FFDE00;">PLAY</span></span>
+                  <!-- Left Column: Information & Code -->
+                  <td class="email-col-left" valign="middle" style="width: 58%; vertical-align: middle; padding-right: 20px;">
+                    <!-- Brand Header -->
+                    <table role="presentation" class="logo-center" border="0" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td>
+                          <span style="font-size: 26px; font-weight: 900; letter-spacing: 2px; color: #FFFFFF;">REN<span style="color: #FFDE00;">PLAY</span></span>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <h1 style="margin: 18px 0 0 0; font-size: 22px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px; line-height: 28px;">Recuperar sua conta</h1>
+                    <p style="margin: 8px 0 0 0; font-size: 13px; color: #9E9EB2; line-height: 20px;">
+                      Recebemos uma solicitação para redefinir a senha da sua conta RenPlay.
+                    </p>
+
+                    <!-- Code Box -->
+                    <div style="margin-top: 22px; background-color: #090A10; border: 2px dashed #FFDE00; border-radius: 14px; padding: 18px 14px; text-align: center;">
+                      <p style="margin: 0 0 6px 0; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #FFDE00;">Seu código de recuperação</p>
+                      <div class="code-display" style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #FFDE00; font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace; padding-left: 8px;">
+                        ${code}
+                      </div>
+                    </div>
+
+                    <!-- Notice & Expiration -->
+                    <p style="margin: 16px 0 0 0; font-size: 12px; font-weight: 700; color: #FFDE00;">
+                      ⏱ Este código expira em 10 minutos.
+                    </p>
+                    <p style="margin: 6px 0 0 0; font-size: 11px; color: #7B7D91; line-height: 16px;">
+                      Se você não solicitou esta alteração, sua conta permanece segura e você pode ignorar este e-mail.
+                    </p>
+                  </td>
+
+                  <!-- Right Column: Character Mascot -->
+                  <td class="email-col-right" valign="middle" align="center" style="width: 42%; vertical-align: middle; text-align: center;">
+                    <img class="mascot-img" src="https://renplay.site/Carta.png" alt="RenPlay Mascot" width="220" style="display: block; margin: 0 auto; width: 100%; max-width: 220px; height: auto; border: 0; outline: none; text-decoration: none;" />
                   </td>
                 </tr>
               </table>
-              <h1 style="margin: 20px 0 0 0; font-size: 20px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px;">Recuperar sua conta</h1>
-              <p style="margin: 8px 0 0 0; font-size: 14px; color: #9E9EB2; line-height: 20px;">
-                Recebemos uma solicitação para redefinir a senha da sua conta RenPlay.
-              </p>
             </td>
           </tr>
-          <!-- Code Card -->
-          <tr>
-            <td align="center" style="padding: 16px 32px 24px 32px;">
-              <div style="background-color: #090A10; border: 2px dashed #FFDE00; border-radius: 14px; padding: 22px 16px; max-width: 360px;">
-                <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #FFDE00;">Seu código de recuperação</p>
-                <div style="font-size: 38px; font-weight: 900; letter-spacing: 10px; color: #FFDE00; font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace; padding-left: 10px;">
-                  ${code}
-                </div>
-              </div>
-            </td>
-          </tr>
-          <!-- Notice & Warning -->
-          <tr>
-            <td style="padding: 0 36px 28px 36px; text-align: center;">
-              <p style="margin: 0 0 12px 0; font-size: 13px; font-weight: 700; color: #FFDE00;">
-                ⏱ Este código expira em 10 minutos.
-              </p>
-              <p style="margin: 0; font-size: 12px; color: #7B7D91; line-height: 18px;">
-                Se você não solicitou esta alteração, fique tranquilo: sua senha permanece a mesma e você pode ignorar esta mensagem.
-              </p>
-            </td>
-          </tr>
+
           <!-- Footer -->
           <tr>
-            <td style="background-color: #0B0D14; border-top: 1px solid #1C1F2D; padding: 20px 32px; text-align: center;">
+            <td style="background-color: #0B0D14; border-top: 1px solid #1C1F2D; padding: 18px 32px; text-align: center;">
               <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; color: #9E9EB2;">Equipe RenPlay</p>
               <a href="https://renplay.site" style="font-size: 11px; color: #FFDE00; text-decoration: none; font-weight: 600;">renplay.site</a>
+              <p style="margin: 8px 0 0 0; font-size: 10px; color: #525566;">Este é um e-mail automático de segurança. Por favor, não responda.</p>
             </td>
           </tr>
         </table>
