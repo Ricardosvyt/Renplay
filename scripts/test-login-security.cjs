@@ -69,24 +69,51 @@ test('LOGIN AUDIT & REINFORCEMENT TEST SUITE', async (t) => {
       }
 
       // Rate limit query
-      if (sql.includes('FROM rp_limits WHERE key IN') || sql.includes('FROM rp_limits WHERE key =')) {
+      if (sql.includes('FROM rp_limits') && (sql.includes('WHERE key IN') || sql.includes('WHERE key ='))) {
         const keys = Array.isArray(params[0]) ? params[0] : params;
         const rows = [];
         for (const k of keys) {
           if (mockLimits.has(k)) {
-            rows.push({ key: k, hits: mockLimits.get(k).hits, resets_at: mockLimits.get(k).resets_at });
+            rows.push({
+              key: k,
+              hits: mockLimits.get(k).hits,
+              resets_at: mockLimits.get(k).resets_at,
+              remaining_seconds: 900,
+            });
           }
         }
         return { rows };
       }
 
+      // CTE atomic upsert
+      if (sql.includes('WITH pair_upsert AS')) {
+        const pairKey = params[0];
+        const ipKey = params[1];
+
+        const pairExist = mockLimits.get(pairKey);
+        const pairHits = (pairExist?.hits || 0) + 1;
+        mockLimits.set(pairKey, { hits: pairHits, resets_at: new Date(Date.now() + 15 * 60 * 1000) });
+
+        const ipExist = mockLimits.get(ipKey);
+        const ipHits = (ipExist?.hits || 0) + 1;
+        mockLimits.set(ipKey, { hits: ipHits, resets_at: new Date(Date.now() + 15 * 60 * 1000) });
+
+        return {
+          rows: [
+            { key: pairKey, hits: pairHits, remaining_seconds: 900 },
+            { key: ipKey, hits: ipHits, remaining_seconds: 900 },
+          ],
+        };
+      }
+
       // Rate limit upsert
       if (sql.includes('INSERT INTO rp_limits')) {
         const key = params[0];
-        const hits = params[1];
-        const resets_at = params[2];
+        const existing = mockLimits.get(key);
+        const hits = existing ? existing.hits + 1 : 1;
+        const resets_at = new Date(Date.now() + 15 * 60 * 1000);
         mockLimits.set(key, { hits, resets_at });
-        return { rows: [{ hits }] };
+        return { rows: [{ key, hits, remaining_seconds: 900 }] };
       }
 
       // Rate limit delete
@@ -136,6 +163,20 @@ test('LOGIN AUDIT & REINFORCEMENT TEST SUITE', async (t) => {
               password_hash: argonHash,
               active: true,
               banned: true,
+              banned_until: null,
+            }],
+          };
+        }
+        if (id === 'inactiveuser' || id === 'inactive@renplay.site') {
+          return {
+            rows: [{
+              id: 'user-inactive-uuid',
+              username: 'InactiveUser',
+              email: 'inactive@renplay.site',
+              display_name: 'Inactive',
+              password_hash: argonHash,
+              active: false,
+              banned: false,
               banned_until: null,
             }],
           };
@@ -219,6 +260,18 @@ test('LOGIN AUDIT & REINFORCEMENT TEST SUITE', async (t) => {
       clearLauncherAuthRateLimit: async (req, action, identifier) => {
         mockLimits.delete(`launcher:${identifier}`);
       },
+    },
+  });
+
+  const desktopAuthorizeRoute = loadTsModule('src/app/api/v1/auth/desktop/authorize/route.ts', {
+    '@/lib/db': { getDb: () => mockDb },
+    '@/lib/auth': authModule,
+  });
+
+  const cronRoute = loadTsModule('src/app/api/cron/cleanup-limits/route.ts', {
+    '@/lib/db': { getDb: () => mockDb },
+    '@/lib/auth-rate-limit': {
+      cleanupExpiredLimits: async (pool, batchSize) => 42,
     },
   });
 
@@ -472,4 +525,168 @@ test('LOGIN AUDIT & REINFORCEMENT TEST SUITE', async (t) => {
       simulateDbError = false;
     }
   });
+
+  // 16. Conta banida
+  await t.test('16. Conta banida retorna 403 apenas após validar senha correta; com senha errada retorna 401 idêntico', async () => {
+    mockLimits.clear();
+    // Tentativa com senha errada para conta banida: NÃO revela que a conta está banida (retorna 401)
+    const reqWrong = new Request('https://renplay.site/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '127.0.0.1' },
+      body: JSON.stringify({ identifier: 'banneduser', password: 'SenhaIncorreta123!' }),
+    });
+    const resWrong = await webLoginRoute.POST(reqWrong);
+    assert.equal(resWrong.status, 401);
+    const dataWrong = await resWrong.json();
+    assert.equal(dataWrong.error, 'E-mail/usuário ou senha inválidos.');
+
+    // Tentativa com senha correta para conta banida: retorna 403
+    const reqRight = new Request('https://renplay.site/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '127.0.0.1' },
+      body: JSON.stringify({ identifier: 'banneduser', password: argonPassword }),
+    });
+    const resRight = await webLoginRoute.POST(reqRight);
+    assert.equal(resRight.status, 403);
+    const dataRight = await resRight.json();
+    assert.equal(dataRight.error, 'Sua conta está banida permanentemente.');
+  });
+
+  // 17. Conta inativa
+  await t.test('17. Conta inativa retorna 401 genérico indistinguível de credenciais incorretas', async () => {
+    mockLimits.clear();
+    const req = new Request('https://renplay.site/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '127.0.0.1' },
+      body: JSON.stringify({ identifier: 'inactiveuser', password: argonPassword }),
+    });
+    const res = await webLoginRoute.POST(req);
+    assert.equal(res.status, 401);
+    const data = await res.json();
+    assert.equal(data.error, 'E-mail/usuário ou senha inválidos.');
+  });
+
+  // 18. Origem sem IP confiável
+  await t.test('18. Origem sem IP confiável em ambiente de produção é rejeitada com HTTP 400 sem collective DoS', async () => {
+    const origEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      mockLimits.clear();
+      // Requisição sem cabeçalhos de IP confiáveis em produção
+      const req = new Request('https://renplay.site/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: 'argonplayer', password: argonPassword }),
+      });
+      const res = await webLoginRoute.POST(req);
+      assert.equal(res.status, 400);
+      const data = await res.json();
+      assert.ok(data.error.includes('origem da rede'));
+      // Verifica que NÃO criou chave global untrusted-pool no banco
+      assert.equal(mockLimits.has('auth:login:untrusted-pool'), false);
+    } finally {
+      process.env.NODE_ENV = origEnv;
+    }
+  });
+
+  // 19. Endpoint de limpeza agendada Vercel Cron
+  await t.test('19. Cron de limpeza (/api/cron/cleanup-limits) exige Bearer CRON_SECRET via timingSafeEqual e rejeita x-vercel-cron falso', async () => {
+    const origEnv = process.env.NODE_ENV;
+    const origSecret = process.env.CRON_SECRET;
+    process.env.NODE_ENV = 'production';
+    process.env.CRON_SECRET = 'segredo-cron-super-seguro-renplay-2026';
+
+    try {
+      // 1. Requisição sem autorização
+      const reqAnon = new Request('https://renplay.site/api/cron/cleanup-limits', { method: 'GET' });
+      const resAnon = await cronRoute.GET(reqAnon);
+      assert.equal(resAnon.status, 401);
+
+      // 2. Requisição forjando apenas x-vercel-cron: 1 (deve ser rejeitada!)
+      const reqFakeHeader = new Request('https://renplay.site/api/cron/cleanup-limits', {
+        method: 'GET',
+        headers: { 'x-vercel-cron': '1' },
+      });
+      const resFakeHeader = await cronRoute.GET(reqFakeHeader);
+      assert.equal(resFakeHeader.status, 401, 'x-vercel-cron não pode ser aceito como credencial secreta');
+
+      // 3. Requisição com Bearer token incorreto
+      const reqWrongToken = new Request('https://renplay.site/api/cron/cleanup-limits', {
+        method: 'GET',
+        headers: { authorization: 'Bearer token-errado-123' },
+      });
+      const resWrongToken = await cronRoute.GET(reqWrongToken);
+      assert.equal(resWrongToken.status, 401);
+
+      // 4. Requisição com Bearer token válido correspondente a CRON_SECRET
+      const reqValid = new Request('https://renplay.site/api/cron/cleanup-limits', {
+        method: 'GET',
+        headers: { authorization: 'Bearer segredo-cron-super-seguro-renplay-2026' },
+      });
+      const resValid = await cronRoute.GET(reqValid);
+      assert.equal(resValid.status, 200);
+      const dataValid = await resValid.json();
+      assert.equal(dataValid.success, true);
+      assert.equal(dataValid.cleanedExpiredRows, 42);
+    } finally {
+      process.env.NODE_ENV = origEnv;
+      if (origSecret !== undefined) process.env.CRON_SECRET = origSecret;
+      else delete process.env.CRON_SECRET;
+    }
+  });
+
+  // 20. Autorização PKCE do Electron
+  await t.test('20. Autorização PKCE do Electron (/api/v1/auth/desktop/authorize) valida redirectUri e emite authorization code', async () => {
+    mockLimits.clear();
+    const verifier = 'my-super-secret-code-verifier-for-pkce-12345678901234567890';
+    const challenge = require('crypto').createHash('sha256').update(verifier).digest('base64url');
+    const redirectUri = 'http://127.0.0.1:42123/callback';
+    const state = 'random-state-string-xyz';
+
+    // 1. Tentar com redirectUri malicioso (rejeitado)
+    const reqMalicious = new Request('https://renplay.site/api/v1/auth/desktop/authorize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '127.0.0.1' },
+      body: JSON.stringify({
+        identifier: 'argonplayer',
+        password: argonPassword,
+        challenge,
+        state,
+        redirectUri: 'https://attacker.com/steal-code',
+      }),
+    });
+    const resMalicious = await desktopAuthorizeRoute.POST(reqMalicious);
+    assert.equal(resMalicious.status, 400);
+
+    // 2. Tentar com credenciais válidas e redirectUri legítimo do Electron
+    const reqValid = new Request('https://renplay.site/api/v1/auth/desktop/authorize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '127.0.0.1' },
+      body: JSON.stringify({
+        identifier: 'argonplayer',
+        password: argonPassword,
+        challenge,
+        state,
+        redirectUri,
+      }),
+    });
+    const resValid = await desktopAuthorizeRoute.POST(reqValid);
+    assert.equal(resValid.status, 200);
+    const dataValid = await resValid.json();
+    assert.ok(dataValid.redirectUrl, 'Deve retornar redirectUrl com o código');
+    const callbackUrl = new URL(dataValid.redirectUrl);
+    const code = callbackUrl.searchParams.get('code');
+    assert.ok(code, 'Deve retornar o código de autorização assinado');
+    assert.equal(callbackUrl.searchParams.get('state'), state);
+
+    // 3. Consumir código gerado via PKCE
+    const consumed = authModule.consumeDesktopAuthorizationCode(code, verifier, redirectUri);
+    assert.ok(consumed, 'O código PKCE deve ser consumido com sucesso');
+    assert.equal(consumed.userId, 'user-argon-uuid');
+
+    // 4. Consumo com verifier incorreto deve falhar
+    const consumedWrong = authModule.consumeDesktopAuthorizationCode(code, 'wrong-verifier', redirectUri);
+    assert.equal(consumedWrong, null);
+  });
 });
+

@@ -34,6 +34,11 @@ function loadModule(file, dependencies = {}) {
     console,
     require: name => {
       if (name in defaultMocks) return defaultMocks[name];
+      if (name.startsWith('@/')) {
+        const path = require('node:path');
+        const resolved = path.resolve(__dirname, '..', name.replace('@/', 'src/') + '.ts');
+        if (fs.existsSync(resolved)) return loadModule(resolved, defaultMocks);
+      }
       return require(name);
     },
   });

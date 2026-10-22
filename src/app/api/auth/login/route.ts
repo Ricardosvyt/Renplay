@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
-import { createHash } from "node:crypto";
 import { getDb } from "@/lib/db";
 import {
   createWebSession,
-  getClientKey,
   normalizeIdentifier,
   verifyPasswordHash,
+  hashPassword,
+  isBcryptHash,
   readAuthJsonBody,
   AuthInputError,
   DUMMY_ARGON2_HASH,
 } from "@/lib/auth";
-
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS_PER_PAIR = 5;
-const MAX_ATTEMPTS_PER_IP = 25;
+import {
+  checkAuthRateLimit,
+  recordAuthFailure,
+  recordAuthSuccess,
+} from "@/lib/auth-rate-limit";
 
 function invalidCredentials() {
   return NextResponse.json(
@@ -22,10 +23,16 @@ function invalidCredentials() {
   );
 }
 
-function rateLimitedResponse() {
+function rateLimitedResponse(retryAfter: number) {
   return NextResponse.json(
     { error: "Muitas tentativas de login. Aguarde alguns minutos e tente novamente." },
-    { status: 429, headers: { "Retry-After": "900", "Cache-Control": "no-store" } }
+    {
+      status: 429,
+      headers: {
+        "Retry-After": String(retryAfter > 0 ? retryAfter : 900),
+        "Cache-Control": "no-store",
+      },
+    }
   );
 }
 
@@ -63,11 +70,28 @@ export async function POST(request: Request) {
     return invalidCredentials();
   }
 
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const ip = forwarded || request.headers.get("x-real-ip") || "unknown";
-  const ipHash = createHash("sha256").update(ip).digest("hex");
-  const ipLimitKey = `login:ip:${ipHash}`;
-  const pairLimitKey = `login:pair:${getClientKey(request, identifier)}`;
+  // Pre-crypto rate limit check: rejects brute force in <5ms without CPU exhaustion
+  const rateLimit = await checkAuthRateLimit(request, "login", identifier);
+  if (!rateLimit.allowed) {
+    if (rateLimit.reason === "UNVERIFIED_ORIGIN") {
+      return NextResponse.json(
+        { error: "Não foi possível validar a origem da rede. Verifique sua conexão e tente novamente." },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+    if (rateLimit.isServiceUnavailable) {
+      return NextResponse.json(
+        { error: "Não foi possível consultar o serviço de autenticação agora. Tente novamente em instantes." },
+        { status: 503, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+    return rateLimitedResponse(rateLimit.retryAfter);
+  }
+
+  // Under heavy distributed abuse, apply progressive server-side micro-tarpit
+  if (rateLimit.shouldTarpit && rateLimit.tarpitMs > 0) {
+    await new Promise((r) => setTimeout(r, rateLimit.tarpitMs));
+  }
 
   const db = getDb();
   let client;
@@ -83,33 +107,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await client.query("BEGIN");
     const now = Date.now();
-
-    // Check rate limits atomically for both IP and identity:IP pair
-    const limits = await client.query<{ key: string; hits: number; resets_at: Date }>(
-      "SELECT key, hits, resets_at FROM rp_limits WHERE key IN ($1, $2) FOR UPDATE",
-      [pairLimitKey, ipLimitKey]
-    );
-
-    const pairLimit = limits.rows.find((r) => r.key === pairLimitKey);
-    const ipLimit = limits.rows.find((r) => r.key === ipLimitKey);
-
-    const isPairBlocked = Boolean(
-      pairLimit &&
-      new Date(pairLimit.resets_at).getTime() > now &&
-      pairLimit.hits >= MAX_ATTEMPTS_PER_PAIR
-    );
-    const isIpBlocked = Boolean(
-      ipLimit &&
-      new Date(ipLimit.resets_at).getTime() > now &&
-      ipLimit.hits >= MAX_ATTEMPTS_PER_IP
-    );
-
-    if (isPairBlocked || isIpBlocked) {
-      await client.query("ROLLBACK");
-      return rateLimitedResponse();
-    }
 
     // Lookup user using parameterized lowercase query to support both legacy and normalized entries
     const result = await client.query<{
@@ -135,38 +133,24 @@ export async function POST(request: Request) {
       user?.password_hash ?? DUMMY_ARGON2_HASH
     );
 
-    // Check account banned status
-    if (user?.banned && (!user.banned_until || new Date(user.banned_until).getTime() > now)) {
-      await client.query("ROLLBACK");
+    // Authentication failure: if user does not exist or password is wrong, return identical 401 error
+    if (!user || !validPassword) {
+      await recordAuthFailure(request, "login", identifier);
+      return invalidCredentials();
+    }
+
+    // Check account banned status ONLY after password is confirmed correct
+    // This prevents attackers from discovering that an account exists and is banned via wrong-password attempts
+    if (user.banned && (!user.banned_until || new Date(user.banned_until).getTime() > now)) {
       return NextResponse.json(
         { error: user.banned_until ? "Sua conta está temporariamente banida." : "Sua conta está banida permanentemente." },
         { status: 403, headers: { "Cache-Control": "no-store" } }
       );
     }
 
-    // Authentication failure
-    if (!user || !user.active || !validPassword) {
-      const resetAt = new Date(now + WINDOW_MS);
-
-      // Increment pair limit
-      const pairHits = pairLimit && new Date(pairLimit.resets_at).getTime() > now ? pairLimit.hits + 1 : 1;
-      const pairReset = pairLimit && new Date(pairLimit.resets_at).getTime() > now ? pairLimit.resets_at : resetAt;
-      await client.query(
-        `INSERT INTO rp_limits (key, hits, resets_at) VALUES ($1, $2, $3)
-         ON CONFLICT (key) DO UPDATE SET hits = EXCLUDED.hits, resets_at = EXCLUDED.resets_at`,
-        [pairLimitKey, pairHits, pairReset]
-      );
-
-      // Increment IP limit
-      const ipHits = ipLimit && new Date(ipLimit.resets_at).getTime() > now ? ipLimit.hits + 1 : 1;
-      const ipReset = ipLimit && new Date(ipLimit.resets_at).getTime() > now ? ipLimit.resets_at : resetAt;
-      await client.query(
-        `INSERT INTO rp_limits (key, hits, resets_at) VALUES ($1, $2, $3)
-         ON CONFLICT (key) DO UPDATE SET hits = EXCLUDED.hits, resets_at = EXCLUDED.resets_at`,
-        [ipLimitKey, ipHits, ipReset]
-      );
-
-      await client.query("COMMIT");
+    // Check if account is active
+    if (!user.active) {
+      await recordAuthFailure(request, "login", identifier);
       return invalidCredentials();
     }
 
@@ -179,22 +163,30 @@ export async function POST(request: Request) {
       ["ADMIN", "MODERATOR", "TRANSLATOR", "DEVELOPER"].includes(role)
     );
     if (body.client !== "launcher" && !canAccessSite) {
-      await client.query("ROLLBACK");
       return NextResponse.json(
         { error: "Esta área é exclusiva para administradores, moderadores, tradutores e desenvolvedores." },
         { status: 403, headers: { "Cache-Control": "no-store" } }
       );
     }
 
-    // Authentication succeeded: clear rate limits for this pair so legitimate user is never locked out
-    await client.query("DELETE FROM rp_limits WHERE key = $1", [pairLimitKey]);
+    // Transparent upgrade of legacy bcrypt hashes to Argon2id
+    if (isBcryptHash(user.password_hash)) {
+      try {
+        const upgradedHash = await hashPassword(password);
+        await client.query("UPDATE rp_users SET password_hash = $1 WHERE id = $2", [upgradedHash, user.id]);
+      } catch (rehashErr) {
+        console.error("Erro na migração transparente de hash:", rehashErr instanceof Error ? rehashErr.message : "");
+      }
+    }
+
+    // Authentication succeeded: clear rate limits so legitimate user is never locked out
+    await recordAuthSuccess(request, "login", identifier);
 
     // Update last login timestamp
     await client.query(
       "UPDATE rp_users SET last_login_at = now(), updated_at = now() WHERE id = $1",
       [user.id]
     );
-    await client.query("COMMIT");
 
     // Create secure web session
     await createWebSession(user.id, body.rememberMe === true);
@@ -204,7 +196,6 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => undefined);
     const errorMsg = error instanceof Error ? error.message : "";
     console.error("Falha no login:", errorMsg);
     return NextResponse.json(

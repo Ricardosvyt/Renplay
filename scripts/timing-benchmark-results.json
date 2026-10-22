@@ -1,0 +1,94 @@
+{
+  "A": {
+    "name": "Case A: Existent Argon2id User + Wrong Password",
+    "totalRequest": {
+      "count": 30,
+      "min": 62.5,
+      "max": 147.69,
+      "mean": 78.32,
+      "median": 72.41,
+      "p90": 98.39,
+      "p95": 105.72,
+      "stdDev": 17.55
+    },
+    "hashVerify": {
+      "count": 30,
+      "min": 60.84,
+      "max": 132.02,
+      "mean": 75.08,
+      "median": 65.99,
+      "p90": 95.82,
+      "p95": 109.61,
+      "stdDev": 17.52
+    }
+  },
+  "B": {
+    "name": "Case B: Non-Existent User + Wrong Password",
+    "totalRequest": {
+      "count": 30,
+      "min": 61.55,
+      "max": 140.04,
+      "mean": 77.98,
+      "median": 69.79,
+      "p90": 98.41,
+      "p95": 102.07,
+      "stdDev": 16.96
+    },
+    "hashVerify": {
+      "count": 30,
+      "min": 60.38,
+      "max": 135.06,
+      "mean": 79.14,
+      "median": 74.08,
+      "p90": 98.71,
+      "p95": 102,
+      "stdDev": 16.65
+    }
+  },
+  "C": {
+    "name": "Case C: Legacy Bcrypt User + Wrong Password",
+    "totalRequest": {
+      "count": 30,
+      "min": 71.11,
+      "max": 79.2,
+      "mean": 74.46,
+      "median": 74.54,
+      "p90": 77.05,
+      "p95": 77.63,
+      "stdDev": 2.05
+    },
+    "hashVerify": {
+      "count": 30,
+      "min": 68.69,
+      "max": 84.71,
+      "mean": 74.71,
+      "median": 74.43,
+      "p90": 78.35,
+      "p95": 80.11,
+      "stdDev": 3.13
+    }
+  },
+  "D": {
+    "name": "Case D: Inactive Existent User + Wrong Password",
+    "totalRequest": {
+      "count": 30,
+      "min": 62.61,
+      "max": 165.54,
+      "mean": 80.1,
+      "median": 72.21,
+      "p90": 98.36,
+      "p95": 112.85,
+      "stdDev": 20.84
+    },
+    "hashVerify": {
+      "count": 30,
+      "min": 61.78,
+      "max": 237.59,
+      "mean": 84.83,
+      "median": 69.24,
+      "p90": 100.92,
+      "p95": 169.4,
+      "stdDev": 40.61
+    }
+  }
+}

@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { getDb } from "@/lib/db";
+import { extractClientIp } from "@/lib/client-ip";
+import { runWithArgonConcurrencyLimit } from "@/lib/auth-rate-limit";
 import type { PoolClient } from "pg";
 
 export const SESSION_COOKIE = "renplay_session";
@@ -27,9 +29,9 @@ export function normalizeIdentifier(value: string) {
 }
 
 export function getClientKey(request: Request, identifier: string) {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const ip = forwarded || request.headers.get("x-real-ip") || "unknown";
-  return hashToken(`${ip}:${normalizeIdentifier(identifier)}`);
+  const { normalizedIp } = extractClientIp(request);
+  const ipComponent = normalizedIp ?? "unverified";
+  return hashToken(`${ipComponent}:${normalizeIdentifier(identifier)}`);
 }
 
 export async function createWebSession(userId: string, rememberMe: boolean) {
@@ -210,19 +212,23 @@ export async function readAuthJsonBody<T>(request: Request, maxBytes = 8192): Pr
   }
 }
 
-export async function verifyPasswordHash(password: string, hash: string): Promise<boolean> {
-  if (typeof password !== "string" || !password) return false;
-  const isArgon = Boolean(hash && hash.startsWith("$argon2"));
-  const isBcrypt = Boolean(
+export function isBcryptHash(hash: string): boolean {
+  return Boolean(
     hash &&
     (hash.startsWith("$2a$") || hash.startsWith("$2b$") || hash.startsWith("$2y$") || hash.startsWith("$2$"))
   );
+}
+
+export async function verifyPasswordHash(password: string, hash: string): Promise<boolean> {
+  if (typeof password !== "string" || !password) return false;
+  const isArgon = Boolean(hash && hash.startsWith("$argon2"));
+  const isBcrypt = isBcryptHash(hash);
 
   // If user does not exist or has invalid hash, perform dummy Argon2 verification to prevent timing attack enumeration
   if (!isArgon && !isBcrypt) {
     try {
       const argon2 = await import("argon2");
-      await argon2.verify(DUMMY_ARGON2_HASH, password);
+      await runWithArgonConcurrencyLimit(() => argon2.verify(DUMMY_ARGON2_HASH, password));
     } catch {
       // ignore
     }
@@ -232,7 +238,7 @@ export async function verifyPasswordHash(password: string, hash: string): Promis
   if (isArgon) {
     try {
       const argon2 = await import("argon2");
-      return await argon2.verify(hash, password);
+      return await runWithArgonConcurrencyLimit(() => argon2.verify(hash, password));
     } catch {
       return false;
     }

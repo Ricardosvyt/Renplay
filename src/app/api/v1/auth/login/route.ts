@@ -3,12 +3,18 @@ import {
   createDesktopSession,
   normalizeIdentifier,
   verifyPasswordHash,
+  hashPassword,
+  isBcryptHash,
   readAuthJsonBody,
   AuthInputError,
   DUMMY_ARGON2_HASH,
 } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { allowLauncherAuth, clearLauncherAuthRateLimit } from "@/lib/launcher-rate-limit";
+import {
+  checkAuthRateLimit,
+  recordAuthFailure,
+  recordAuthSuccess,
+} from "@/lib/auth-rate-limit";
 
 export async function POST(request: Request) {
   let body: { identifier?: unknown; password?: unknown };
@@ -39,11 +45,35 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!(await allowLauncherAuth(request, "login", identifier, 10))) {
+  // Pre-crypto rate limit check: rejects brute force before invoking Argon2id
+  const rateLimit = await checkAuthRateLimit(request, "desktop-login", identifier);
+  if (!rateLimit.allowed) {
+    if (rateLimit.reason === "UNVERIFIED_ORIGIN") {
+      return NextResponse.json(
+        { error: { code: "UNVERIFIED_ORIGIN", message: "Não foi possível validar a origem da rede." } },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+    if (rateLimit.isServiceUnavailable) {
+      return NextResponse.json(
+        { error: { code: "AUTH_UNAVAILABLE", message: "Serviço de autenticação indisponível." } },
+        { status: 503, headers: { "Cache-Control": "no-store" } }
+      );
+    }
     return NextResponse.json(
       { error: { code: "RATE_LIMITED", message: "Muitas tentativas. Aguarde 15 minutos." } },
-      { status: 429, headers: { "Retry-After": "900", "Cache-Control": "no-store" } }
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfter > 0 ? rateLimit.retryAfter : 900),
+          "Cache-Control": "no-store",
+        },
+      }
     );
+  }
+
+  if (rateLimit.shouldTarpit && rateLimit.tarpitMs > 0) {
+    await new Promise((r) => setTimeout(r, rateLimit.tarpitMs));
   }
 
   try {
@@ -73,8 +103,18 @@ export async function POST(request: Request) {
       user?.password_hash ?? DUMMY_ARGON2_HASH
     );
 
+    // Authentication failure: if user does not exist or password is wrong, record failure and return 401
+    if (!user || !validPassword) {
+      await recordAuthFailure(request, "desktop-login", identifier);
+      return NextResponse.json(
+        { error: { code: "INVALID_CREDENTIALS", message: "E-mail/usuário ou senha inválidos." } },
+        { status: 401, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    // Check banned status ONLY after password is verified
     const now = Date.now();
-    if (user?.banned && (!user.banned_until || new Date(user.banned_until).getTime() > now)) {
+    if (user.banned && (!user.banned_until || new Date(user.banned_until).getTime() > now)) {
       return NextResponse.json(
         {
           error: {
@@ -86,17 +126,26 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!user || !user.active || !validPassword) {
+    if (!user.active) {
+      await recordAuthFailure(request, "desktop-login", identifier);
       return NextResponse.json(
         { error: { code: "INVALID_CREDENTIALS", message: "E-mail/usuário ou senha inválidos." } },
         { status: 401, headers: { "Cache-Control": "no-store" } }
       );
     }
 
-    // Clear rate limits for this identity on successful login
-    if (typeof clearLauncherAuthRateLimit === "function") {
-      await clearLauncherAuthRateLimit(request, "login", identifier).catch(() => undefined);
+    // Transparent upgrade of legacy bcrypt hashes to Argon2id
+    if (isBcryptHash(user.password_hash)) {
+      try {
+        const upgradedHash = await hashPassword(password);
+        await db.query("UPDATE rp_users SET password_hash = $1 WHERE id = $2", [upgradedHash, user.id]);
+      } catch (rehashErr) {
+        console.error("Erro na migração de hash desktop:", rehashErr instanceof Error ? rehashErr.message : "");
+      }
     }
+
+    // Clear rate limits for this identity on successful login
+    await recordAuthSuccess(request, "desktop-login", identifier);
 
     // Update last login timestamp
     await db.query(
