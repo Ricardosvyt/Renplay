@@ -360,7 +360,7 @@ export default function LoginPage() {
             <img
               src="/Rina_open.png"
               alt="Renplay Visual Artwork - Personagem Anime Rina"
-              className="w-full h-full object-cover object-[78%_center] lg:object-[82%_18px] lg:translate-x-12 xl:translate-x-20 pointer-events-none select-none drop-shadow-[0_20px_45px_rgba(0,0,0,0.45)] drop-shadow-[0_0_35px_rgba(255,222,0,0.22)]"
+              className="w-full h-full object-contain object-[82%_bottom] lg:w-[92%] lg:h-[90%] lg:object-[88%_bottom] lg:translate-x-6 xl:translate-x-12 pointer-events-none select-none drop-shadow-[0_20px_45px_rgba(0,0,0,0.45)] drop-shadow-[0_0_35px_rgba(255,222,0,0.22)]"
             />
             {/* PNG sobreposta: apenas os olhos fechados mudam de opacidade */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -369,7 +369,7 @@ export default function LoginPage() {
               src="/Rina_closed_eyes.png"
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover object-[78%_center] lg:object-[82%_18px] lg:translate-x-12 xl:translate-x-20 pointer-events-none select-none opacity-0 transition-opacity duration-75"
+              className="absolute inset-0 w-full h-full object-contain object-[82%_bottom] lg:w-[92%] lg:h-[90%] lg:object-[88%_bottom] lg:translate-x-6 xl:translate-x-12 pointer-events-none select-none opacity-0 transition-opacity duration-75"
             />
           </div>
 
@@ -412,9 +412,9 @@ export default function LoginPage() {
             </p>
 
             {/* Destaques Rápidos em Chips */}
-            <div className="flex flex-wrap items-center gap-2 pt-5">
+            <div className="relative z-30 flex flex-wrap items-center gap-2.5 pt-5">
               <span
-                className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border backdrop-blur-md flex items-center gap-1.5 ${
+                className={`inline-flex h-11 min-w-[154px] whitespace-nowrap justify-center text-xs font-bold px-4 rounded-lg border backdrop-blur-md items-center gap-2 ${
                   isDark
                     ? "bg-zinc-900/60 border-zinc-800 text-zinc-300"
                     : "bg-white/80 border-zinc-200/80 text-zinc-800 shadow-xs"
@@ -423,7 +423,7 @@ export default function LoginPage() {
                 <ArrowRightIcon className="w-3.5 h-3.5 text-[#FFDE00]" /> Instalação rápida
               </span>
               <span
-                className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border backdrop-blur-md flex items-center gap-1.5 ${
+                className={`inline-flex h-11 min-w-[166px] whitespace-nowrap justify-center text-xs font-bold px-4 rounded-lg border backdrop-blur-md items-center gap-2 ${
                   isDark
                     ? "bg-zinc-900/60 border-zinc-800 text-zinc-300"
                     : "bg-white/80 border-zinc-200/80 text-zinc-800 shadow-xs"
