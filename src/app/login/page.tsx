@@ -110,7 +110,7 @@ export default function LoginPage() {
   });
   const closedEyeRef = useRef<HTMLImageElement>(null);
   // Both PNGs use the same canvas and must have identical geometry for blinking.
-  const rinaImageClass = "absolute right-0 bottom-0 w-[92%] sm:w-[84%] lg:w-[76%] xl:w-[72%] h-full object-contain object-bottom pointer-events-none select-none";
+  const rinaImageClass = "absolute inset-0 w-full h-full object-contain object-bottom pointer-events-none select-none";
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -352,7 +352,7 @@ export default function LoginPage() {
           />
 
           {/* Personagem Anime (Rina) Posicionada à Direita para Deixar Espaço Limpo para o Texto */}
-          <div className="absolute inset-x-0 top-3 sm:top-6 bottom-0 z-10 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
             <div
               aria-hidden="true"
               className="absolute right-[12%] top-[18%] w-[42%] h-[58%] rounded-full bg-[#FFDE00]/10 blur-[80px]"
