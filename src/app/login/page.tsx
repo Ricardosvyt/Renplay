@@ -109,6 +109,8 @@ export default function LoginPage() {
     return true;
   });
   const closedEyeRef = useRef<HTMLImageElement>(null);
+  // Both PNGs use the same canvas and must have identical geometry for blinking.
+  const rinaImageClass = "absolute right-0 bottom-0 w-[92%] sm:w-[84%] lg:w-[76%] xl:w-[72%] h-full object-contain object-bottom pointer-events-none select-none";
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -350,7 +352,7 @@ export default function LoginPage() {
           />
 
           {/* Personagem Anime (Rina) Posicionada à Direita para Deixar Espaço Limpo para o Texto */}
-          <div className="absolute inset-x-0 top-3 sm:top-6 bottom-0 z-10 pointer-events-none overflow-hidden flex items-center justify-end rina-floating-element">
+          <div className="absolute inset-x-0 top-3 sm:top-6 bottom-0 z-10 pointer-events-none overflow-hidden">
             <div
               aria-hidden="true"
               className="absolute right-[12%] top-[18%] w-[42%] h-[58%] rounded-full bg-[#FFDE00]/10 blur-[80px]"
@@ -360,7 +362,7 @@ export default function LoginPage() {
             <img
               src="/Rina_open.png"
               alt="Renplay Visual Artwork - Personagem Anime Rina"
-              className="w-[92%] h-[94%] object-contain object-[88%_bottom] sm:w-[84%] sm:h-[92%] lg:w-[76%] lg:h-[94%] lg:object-[92%_bottom] lg:translate-x-5 xl:w-[72%] xl:h-[92%] xl:translate-x-8 pointer-events-none select-none drop-shadow-[0_20px_45px_rgba(0,0,0,0.45)] drop-shadow-[0_0_35px_rgba(255,222,0,0.22)]"
+              className={`${rinaImageClass} drop-shadow-[0_20px_45px_rgba(0,0,0,0.45)] drop-shadow-[0_0_35px_rgba(255,222,0,0.22)]`}
             />
             {/* PNG sobreposta: apenas os olhos fechados mudam de opacidade */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -369,7 +371,7 @@ export default function LoginPage() {
               src="/Rina_closed_eyes.png"
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 w-[92%] h-[94%] object-contain object-[88%_bottom] sm:w-[84%] sm:h-[92%] lg:w-[76%] lg:h-[94%] lg:object-[92%_bottom] lg:translate-x-5 xl:w-[72%] xl:h-[92%] xl:translate-x-8 pointer-events-none select-none opacity-0 transition-opacity duration-75"
+              className={`${rinaImageClass} opacity-0 transition-opacity duration-75`}
             />
           </div>
 

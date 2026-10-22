@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { getBearerUser } from "@/lib/auth";
 
 function authorized(request: Request) {
   const configured = process.env.LAUNCHER_API_KEY?.trim();
@@ -8,8 +9,8 @@ function authorized(request: Request) {
 }
 
 export async function GET(request: Request) {
-  if (!authorized(request)) return NextResponse.json({ error: { code: "INVALID_API_KEY", message: "Chave do launcher inválida." } }, { status: 401 });
   try {
+    if (!authorized(request) && !await getBearerUser(request)) return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "Entre na sua conta para consultar os jogos." } }, { status: 401 });
     const result = await getDb().query<{ id: string; name: string; status: string; metadata: Record<string, unknown>; updated_at: string }>(
       `SELECT id, name, status, metadata, updated_at FROM rp_games
         WHERE status = 'PUBLISHED' AND distribution_authorized = true

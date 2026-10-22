@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { createDesktopSession, normalizeIdentifier } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { allowLauncherAuth } from "@/lib/launcher-rate-limit";
 
 export async function POST(request: Request) {
   try {
-    const configuredKey = process.env.LAUNCHER_API_KEY?.trim();
-    if (configuredKey && request.headers.get("x-renplay-api-key") !== configuredKey) return NextResponse.json({ error: { code: "INVALID_API_KEY", message: "Chave do launcher inválida." } }, { status: 401 });
     const body = await request.json() as { username?: string; email?: string; password?: string; displayName?: string };
     const username = normalizeIdentifier(body.username || "");
     const email = normalizeIdentifier(body.email || "");
@@ -14,6 +13,7 @@ export async function POST(request: Request) {
     if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(username) || !/^\S+@\S+\.\S+$/.test(email) || !body.password || body.password.length < 8 || body.password.length > 128) {
       return NextResponse.json({ error: { code: "INVALID_INPUT", message: "Use um usuário válido, e-mail válido e senha com pelo menos 8 caracteres." } }, { status: 400 });
     }
+    if (!await allowLauncherAuth(request, "register", email, 3)) return NextResponse.json({ error: { code: "RATE_LIMITED", message: "Muitas tentativas. Aguarde 15 minutos." } }, { status: 429 });
     const passwordHash = await bcrypt.hash(body.password, 12);
     const client = await getDb().connect();
     try {
