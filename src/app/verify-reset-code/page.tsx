@@ -8,9 +8,13 @@ function VerifyResetCodeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email") || "";
+  const codeParam = (searchParams.get("code") || "").trim();
 
   const [email, setEmail] = useState(emailParam);
-  const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  const [digits, setDigits] = useState<string[]>(() => {
+    if (/^\d{6}$/.test(codeParam)) return codeParam.split("");
+    return ["", "", "", "", "", ""];
+  });
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -25,7 +29,10 @@ function VerifyResetCodeContent() {
 
   useEffect(() => {
     if (emailParam) setEmail(emailParam);
-  }, [emailParam]);
+    if (/^\d{6}$/.test(codeParam)) {
+      setDigits(codeParam.split(""));
+    }
+  }, [emailParam, codeParam]);
 
   useEffect(() => {
     const timer = setInterval(() => {

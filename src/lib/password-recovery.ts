@@ -44,7 +44,8 @@ export async function checkRateLimit(key: string, limit: number, windowMinutes: 
   return result.rows[0].hits <= limit;
 }
 
-export function buildRecoveryEmailHtml(code: string): string {
+export function buildRecoveryEmailHtml(code: string, email: string = ""): string {
+  const recoveryUrl = `https://renplay.site/recuperar?code=${code}${email ? `&email=${encodeURIComponent(email)}` : ""}`;
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -65,6 +66,12 @@ export function buildRecoveryEmailHtml(code: string): string {
         font-size: 34px !important;
         letter-spacing: 7px !important;
         padding-left: 7px !important;
+      }
+      .btn-launcher {
+        display: block !important;
+        width: 100% !important;
+        padding: 14px 16px !important;
+        box-sizing: border-box !important;
       }
     }
   </style>
@@ -99,21 +106,36 @@ export function buildRecoveryEmailHtml(code: string): string {
                 Recuperar sua conta
               </h1>
               <p style="margin: 0 auto; max-width: 420px; font-size: 14px; color: #94A3B8; line-height: 22px;">
-                Recebemos uma solicitação para redefinir a senha da sua conta RenPlay. Use o código de segurança abaixo para prosseguir:
+                Recebemos uma solicitação para redefinir a senha da sua conta RenPlay. Você pode abrir direto no launcher ou usar o código manual:
+              </p>
+
+              <!-- CTA Button to open launcher directly -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0 14px 0;">
+                <tr>
+                  <td align="center">
+                    <a class="btn-launcher" href="${recoveryUrl}" target="_blank" style="display: inline-block; background: linear-gradient(180deg, #FFE54D 0%, #FFDE00 50%, #D4A000 100%); color: #080A0F; font-size: 13px; font-weight: 800; text-decoration: none; padding: 14px 28px; border-radius: 12px; letter-spacing: 0.5px; text-transform: uppercase; box-shadow: 0 4px 18px rgba(255, 222, 0, 0.35);">
+                      Abrir no RenPlay Launcher
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 16px 0 8px 0; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 1.5px;">
+                Ou digite o código de 6 dígitos:
               </p>
 
               <!-- Code Box -->
-              <div style="margin-top: 26px; background: linear-gradient(180deg, #0A0C14 0%, #07080D 100%); border: 1.5px solid #FFDE00; border-radius: 16px; padding: 22px 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 222, 0, 0.1);">
-                <div style="display: inline-block; background-color: rgba(255, 222, 0, 0.12); border: 1px solid rgba(255, 222, 0, 0.4); border-radius: 20px; padding: 4px 14px; margin-bottom: 12px;">
-                  <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #FFDE00;">CÓDIGO DE RECUPERAÇÃO</span>
+              <div style="background: linear-gradient(180deg, #0A0C14 0%, #07080D 100%); border: 1.5px solid #FFDE00; border-radius: 16px; padding: 18px 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 222, 0, 0.1);">
+                <div style="display: inline-block; background-color: rgba(255, 222, 0, 0.12); border: 1px solid rgba(255, 222, 0, 0.4); border-radius: 20px; padding: 3px 12px; margin-bottom: 8px;">
+                  <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.8px; color: #FFDE00;">CÓDIGO DE RECUPERAÇÃO</span>
                 </div>
-                <div class="code-display" style="font-size: 42px; font-weight: 900; letter-spacing: 10px; color: #FFFFFF; font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace; padding-left: 10px; text-shadow: 0 0 18px rgba(255, 222, 0, 0.4);">
+                <div class="code-display" style="font-size: 40px; font-weight: 900; letter-spacing: 10px; color: #FFFFFF; font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace; padding-left: 10px; text-shadow: 0 0 18px rgba(255, 222, 0, 0.4);">
                   ${code}
                 </div>
               </div>
 
               <!-- Expiration & Security Advice -->
-              <div style="margin-top: 22px; padding: 14px 16px; background-color: rgba(255, 222, 0, 0.04); border: 1px solid rgba(255, 222, 0, 0.15); border-radius: 12px; text-align: left;">
+              <div style="margin-top: 20px; padding: 14px 16px; background-color: rgba(255, 222, 0, 0.04); border: 1px solid rgba(255, 222, 0, 0.15); border-radius: 12px; text-align: left;">
                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                   <tr>
                     <td style="font-size: 13px; font-weight: 700; color: #FFDE00; line-height: 18px;">
@@ -147,17 +169,21 @@ export function buildRecoveryEmailHtml(code: string): string {
 </html>`;
 }
 
-export function buildRecoveryEmailText(code: string): string {
+export function buildRecoveryEmailText(code: string, email: string = ""): string {
+  const recoveryUrl = `https://renplay.site/recuperar?code=${code}${email ? `&email=${encodeURIComponent(email)}` : ""}`;
   return `Olá!
 
 Recebemos uma solicitação para redefinir a senha da sua conta RenPlay.
 
-Seu código de recuperação é:
+Para abrir diretamente no RenPlay Launcher e preencher automaticamente o seu código, acesse:
+${recoveryUrl}
+
+Ou use o código de recuperação manual:
 ${code}
 
 Este código expira em 10 minutos.
 
-Se você não solicitou esta alteração, ignore esta mensagem.
+Se você não solicitou esta alteração, sua conta permanece segura e você pode ignorar este e-mail.
 
 Equipe RenPlay
 https://renplay.site/`;
@@ -188,8 +214,8 @@ export async function sendRecoveryEmail(to: string, code: string): Promise<{ suc
       from: fromEmail,
       to,
       subject: "RenPlay — Seu código de recuperação",
-      html: buildRecoveryEmailHtml(code),
-      text: buildRecoveryEmailText(code),
+      html: buildRecoveryEmailHtml(code, to),
+      text: buildRecoveryEmailText(code, to),
     });
 
     if (error) {
