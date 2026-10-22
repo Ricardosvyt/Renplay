@@ -2,11 +2,20 @@ import { NextResponse } from "next/server";
 import { createDesktopSession, hashPassword } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { allowLauncherAuth } from "@/lib/launcher-rate-limit";
-import { readRegistrationBody, RegistrationInputError, validateRegistration, checkPwnedPassword } from "@/lib/registration";
+import { readRegistrationBody, RegistrationInputError, validateRegistration, checkPwnedPassword, validateEmail } from "@/lib/registration";
 
 export async function POST(request: Request) {
   try {
     const { username, email, password, displayName } = validateRegistration(await readRegistrationBody(request));
+    const emailCheck = await validateEmail(email, { checkMx: true });
+    if (!emailCheck.valid) {
+      return NextResponse.json({
+        error: {
+          code: emailCheck.error?.includes("descartáveis") ? "DISPOSABLE_EMAIL" : "INVALID_EMAIL",
+          message: emailCheck.error || "Digite um endereço de e-mail válido."
+        }
+      }, { status: 400, headers: { "Cache-Control": "no-store" } });
+    }
     if (!await allowLauncherAuth(request, "register", email, 3)) {
       return NextResponse.json({ error: { code: "RATE_LIMITED", message: "Muitas tentativas de cadastro. Aguarde um pouco." } }, { status: 429, headers: { "Retry-After": "900", "Cache-Control": "no-store" } });
     }

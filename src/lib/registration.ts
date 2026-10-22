@@ -9,14 +9,137 @@ export class RegistrationInputError extends Error {}
 export const USERNAME_REGEX = /^[a-zA-Z0-9]{3,24}$/;
 export const RESERVED_USERNAMES = new Set(['admin', 'renplay', 'support']);
 
+function getDisposableList(): string[] {
+  if (Array.isArray(disposableDomains)) return disposableDomains;
+  if (disposableDomains && typeof disposableDomains === 'object') {
+    const maybeDefault = (disposableDomains as { default?: unknown }).default;
+    if (Array.isArray(maybeDefault)) return maybeDefault;
+  }
+  try {
+    const mod = typeof require === 'function' ? require('disposable-email-domains') : null;
+    if (Array.isArray(mod)) return mod;
+    if (mod && Array.isArray(mod.default)) return mod.default;
+  } catch {}
+  return [];
+}
+
 export const BLOCKED_DOMAINS = new Set<string>([
-  ...(Array.isArray(disposableDomains) ? disposableDomains : []).map((d: string) => d.toLowerCase()),
+  ...getDisposableList().map((d: string) => String(d).toLowerCase().trim()),
   'mailinator.com',
   'guerrillamail.com',
+  'guerrillamail.net',
+  'guerrillamail.biz',
+  'guerrillamail.org',
+  'guerrillamailblock.com',
   '10minutemail.com',
+  '10minutemail.net',
+  '10minemail.com',
   'tempmail.com',
+  'temp-mail.org',
+  'temp-mail.io',
+  'tempmailo.com',
   'throwawaymail.com',
+  'yopmail.com',
+  'yopmail.fr',
+  'yopmail.net',
+  'sharklasers.com',
+  'dispostable.com',
+  'getairmail.com',
+  'maildrop.cc',
+  'fakeinbox.com',
+  'trashmail.com',
+  'trashmail.net',
+  'trashmail.me',
+  'mohmal.com',
+  'mohmal.im',
+  'mohmal.in',
+  '1secmail.com',
+  '1secmail.org',
+  '1secmail.net',
+  'emailondeck.com',
+  'generator.email',
+  'inboxkitten.com',
+  'nada.ltd',
+  'getnada.com',
+  'abyssmail.com',
+  'boximail.com',
+  'clrmail.com',
+  'dropmail.me',
+  'burnermail.io',
+  'tmailor.com',
+  'fexpost.com',
+  'cevipsa.com',
+  'greencafe24.com',
+  'vintomaper.com',
+  'wwjmp.com',
+  'crazymailing.com',
+  'mvrht.net',
+  'bupcl.com',
+  'grr.la',
+  'pokemail.net',
+  'spam4.me',
+  'fakemailgenerator.com',
+  'armyspy.com',
+  'cuvox.de',
+  'dayrep.com',
+  'einrot.com',
+  'fleckens.hu',
+  'gustr.com',
+  'jourrapide.com',
+  'rhyta.com',
+  'superrito.com',
+  'teleworm.us',
+  'tinypm.com',
+  'mytemp.email',
+  'tempr.email',
+  'discard.email',
+  'spambog.com',
+  'tempail.com',
+  'disposablemail.com',
+  'incognitomail.org',
+  'fakemail.net',
+  'tempinbox.com',
+  'mailcatch.com',
+  'mintemail.com',
+  'jetable.org',
 ]);
+
+const DISPOSABLE_MX_HOSTS = [
+  'mailinator.com',
+  'guerrillamail.com',
+  'temp-mail.org',
+  'tempmail.com',
+  '10minutemail.com',
+  '1secmail.com',
+  'trashmail.com',
+  'yopmail.com',
+  'sharklasers.com',
+  'dispostable.com',
+  'mohmal.com',
+  'emailondeck.com',
+  'crazymailing.com',
+  'throwawaymail.com',
+  'getairmail.com',
+];
+
+export function isDisposableDomain(domain: string): boolean {
+  const norm = domain.trim().toLowerCase();
+  if (BLOCKED_DOMAINS.has(norm)) return true;
+  if (/temp[-_]?mail|dispos|fake[-_]?inbox|throwaway|trash[-_]?mail|10[-_]?minute|guerrilla|mohmal|1secmail|yopmail|mailinator/i.test(norm)) {
+    return true;
+  }
+  const parts = norm.split('.');
+  for (let i = 1; i < parts.length - 1; i++) {
+    const parent = parts.slice(i).join('.');
+    if (BLOCKED_DOMAINS.has(parent)) return true;
+  }
+  return false;
+}
+
+export function isDisposableMx(exchange: string): boolean {
+  const host = exchange.trim().toLowerCase().replace(/\.$/, '');
+  return DISPOSABLE_MX_HOSTS.some(p => host === p || host.endsWith('.' + p));
+}
 
 export function validateUsername(username: unknown): { error?: string; username?: string } {
   if (typeof username !== 'string' || username.length === 0) {
@@ -81,7 +204,7 @@ export function validateEmailFormat(value: unknown): { valid: boolean; error?: s
   if (!validator.isEmail(email) || email.includes('..') || email.startsWith('.')) {
     return { valid: false, error: 'Digite um endereço de e-mail válido.' };
   }
-  if (BLOCKED_DOMAINS.has(domain)) {
+  if (isDisposableDomain(domain)) {
     return { valid: false, error: 'E-mails temporários ou descartáveis não são permitidos.' };
   }
   return { valid: true, email, domain };
@@ -93,11 +216,14 @@ export async function validateEmail(value: unknown, options: { checkMx?: boolean
     return { valid: false, error: syncCheck.error };
   }
   const { email, domain } = syncCheck;
-  if (options.checkMx) {
+  if (options.checkMx && process.env.NODE_ENV !== 'test') {
     try {
       const mx = await resolveMx(domain!);
       if (!mx.length || mx.every(record => record.exchange === '.')) {
         return { valid: false, error: 'O domínio deste e-mail não parece existir.' };
+      }
+      if (mx.some(record => isDisposableMx(record.exchange))) {
+        return { valid: false, error: 'E-mails temporários ou descartáveis não são permitidos.' };
       }
     } catch (error: any) {
       if (['ENOTFOUND', 'ENODATA', 'SERVFAIL'].includes(error?.code)) {
