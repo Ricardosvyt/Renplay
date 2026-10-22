@@ -144,6 +144,19 @@
   will-change: transform;
 }
 
+/* Both eye layers move together. Positive offsets keep the lower edge covered. */
+@keyframes rinaAnchoredFloat {
+  0%, 100% { transform: translateY(16px); }
+  50% { transform: translateY(3px); }
+}
+.rina-anchored-float {
+  animation: rinaAnchoredFloat 6s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rina-anchored-float { animation: none; transform: translateY(3px); }
+}
+
 @keyframes cardLiveFloat {
   0%, 100% {
     transform: translate3d(0, 0px, 0);
