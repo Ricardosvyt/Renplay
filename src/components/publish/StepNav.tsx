@@ -11,12 +11,12 @@ export interface StepItem {
 }
 
 export const stepsList: StepItem[] = [
-  { id: 1, title: "Identidade", category: "Visual & GitHub", description: "Nome, banner, perfil e repo", icon: "sparkles" },
-  { id: 2, title: "Informações", category: "Sobre & Sinopse", description: "História, estúdio e gênero", icon: "book" },
-  { id: 3, title: "Idiomas", category: "Localização & Tags", description: "Idiomas e palavras-chave", icon: "globe" },
-  { id: 4, title: "Galeria", category: "Capa & Mídia", description: "Pôster e screenshots", icon: "image" },
-  { id: 5, title: "Arquivos", category: "Download & Sistemas", description: "Links e plataformas", icon: "download" },
-  { id: 6, title: "Lançamento", category: "Revisão & Status", description: "Checklist e publicação", icon: "shield" }
+  { id: 1, title: "Básico", category: "Informações Básicas", description: "Nome, slug, estúdio, classificação e engine", icon: "sparkles" },
+  { id: 2, title: "Mídia", category: "Imagens & Trailer", description: "Ícone, banner hero, pôster e galeria", icon: "image" },
+  { id: 3, title: "Download", category: "Instalação & Requisitos", description: "Versão, plataformas, arquivos e hardware", icon: "download" },
+  { id: 4, title: "Idiomas", category: "Tradução & Tags", description: "Idiomas disponíveis, status e tradutores", icon: "globe" },
+  { id: 5, title: "Publicação", category: "Status & Destaque", description: "Status, datas, ordem de destaque e notas", icon: "shield" },
+  { id: 6, title: "Comunidade", category: "Métricas & Prévia", description: "Preview ao vivo na loja e estatísticas", icon: "book" }
 ];
 
 interface StepNavProps {

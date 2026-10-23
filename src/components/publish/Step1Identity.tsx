@@ -1,286 +1,383 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Icon } from "../ui/Icon";
 import { SectionTitle, inputClass, panelClass } from "./FormControls";
-import { ImageInputMode } from "./types";
 
 interface Step1IdentityProps {
   name: string;
-  horizontalBanner: string;
-  gameIcon: string;
-  githubUrl: string;
-  bannerMode: ImageInputMode;
-  profileMode: ImageInputMode;
-  isGithubValid: boolean;
+  slug: string;
+  developer: string;
+  publisher: string;
+  genre: string;
+  category: string;
+  classification: string;
+  engine: string;
+  customEngine: string;
+  shortDescription: string;
+  fullDescription: string;
+  tags: string[];
+  tagInput: string;
+  setTagInput: (val: string) => void;
+  onAddTag: () => void;
+  onRemoveTag: (tag: string) => void;
   onUpdate: (field: string, value: string) => void;
-  onSetBannerMode: (mode: ImageInputMode) => void;
-  onSetProfileMode: (mode: ImageInputMode) => void;
-  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>, field: "horizontalBanner" | "gameIcon" | "mainCover") => void;
 }
+
+const classificationOptions = [
+  { value: "Livre", label: "Livre", color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40", desc: "Para todos os públicos" },
+  { value: "12", label: "12 anos", color: "bg-amber-500/20 text-amber-400 border-amber-500/40", desc: "Violência leve ou linguagem moderada" },
+  { value: "14", label: "14 anos", color: "bg-orange-500/20 text-orange-400 border-orange-500/40", desc: "Temas mais maduros" },
+  { value: "16", label: "16 anos", color: "bg-red-500/20 text-red-400 border-red-500/40", desc: "Conteúdo denso ou violência acentuada" },
+  { value: "18", label: "18+ anos", color: "bg-purple-500/20 text-purple-400 border-purple-500/40", desc: "Conteúdo adulto explícito" }
+];
+
+const engineOptions = [
+  { value: "Ren'Py", label: "Ren'Py", badge: "Nativo RenPlay", desc: "Suporte completo a patches de tradução e execução direta" },
+  { value: "Unity", label: "Unity", badge: "Compatível", desc: "Executável Windows (.exe) gerenciado pelo Launcher" },
+  { value: "RPG Maker", label: "RPG Maker", badge: "Compatível", desc: "MV, MZ, VX Ace e clássicos (.exe)" },
+  { value: "Godot", label: "Godot Engine", badge: "Compatível", desc: "Binário otimizado para desktop" },
+  { value: "Outra", label: "Outro Motor", badge: "Personalizado", desc: "Executável customizado para desktop" }
+];
 
 export function Step1Identity({
   name,
-  horizontalBanner,
-  gameIcon,
-  githubUrl,
-  bannerMode,
-  profileMode,
-  isGithubValid,
-  onUpdate,
-  onSetBannerMode,
-  onSetProfileMode,
-  onFileUpload
+  slug,
+  developer,
+  publisher,
+  genre,
+  category,
+  classification,
+  engine,
+  customEngine,
+  shortDescription,
+  fullDescription,
+  tags,
+  tagInput,
+  setTagInput,
+  onAddTag,
+  onRemoveTag,
+  onUpdate
 }: Step1IdentityProps) {
+  // Geração automática do slug a partir do nome se o slug ainda não foi editado manualmente
+  useEffect(() => {
+    if (name && (!slug || slug === generateSlug(name.slice(0, -1)))) {
+      onUpdate("slug", generateSlug(name));
+    }
+  }, [name]);
+
+  function generateSlug(text: string) {
+    return text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
   return (
     <section className={panelClass}>
       <SectionTitle
-        title="Categoria 1: Identidade Visual & GitHub"
-        description="Esta é a marca principal da sua Visual Novel. O Nome, o Banner e o Perfil são os primeiros elementos vistos pelos jogadores."
+        title="Etapa 1: Informações Básicas do Jogo"
+        description="Defina os metadados principais da sua obra: identificação, desenvolvedores, categorização, classificação e o motor gráfico utilizado."
       />
 
       <div className="space-y-6">
-        {/* CAMPO: NOME DO JOGO */}
+        {/* NOME DO JOGO E SLUG */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="game-name" className="text-sm font-black text-white">
+                Nome do jogo <span className="text-[#FFDE00]">*</span>
+              </label>
+              <span className="rounded bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-400">Obrigatório</span>
+            </div>
+            <p className="mt-1 text-xs text-zinc-400">
+              Nome oficial exibido no site, na loja e no Launcher.
+            </p>
+            <input
+              id="game-name"
+              required
+              type="text"
+              value={name}
+              onChange={(e) => onUpdate("name", e.target.value)}
+              className={`${inputClass} mt-3 text-base font-semibold`}
+              placeholder="Ex.: Tokyo Memories, Noite em Kyoto, Being a DIK..."
+            />
+          </div>
+
+          <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="game-slug" className="text-sm font-black text-white">
+                Slug (URL Amigável) <span className="text-[#FFDE00]">*</span>
+              </label>
+              <span className="rounded bg-[#FFDE00]/10 px-2 py-0.5 text-[10px] font-bold text-[#FFDE00]">Auto / URL</span>
+            </div>
+            <p className="mt-1 text-xs text-zinc-400">
+              Identificador da página: <span className="font-mono text-zinc-300">/jogo/{slug || "nome-do-jogo"}</span>
+            </p>
+            <div className="mt-3 flex items-center rounded-xl border border-[#29292F] bg-[#12141D] px-3 focus-within:border-[#FFDE00]">
+              <span className="text-xs font-bold text-zinc-500 select-none">/jogo/</span>
+              <input
+                id="game-slug"
+                type="text"
+                value={slug}
+                onChange={(e) => onUpdate("slug", generateSlug(e.target.value))}
+                className="w-full bg-transparent px-1 py-3 text-sm font-bold text-white outline-none placeholder:text-zinc-600"
+                placeholder="nome-do-jogo"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* DESENVOLVEDOR E ESTÚDIO */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="game-dev" className="text-sm font-black text-white">
+                Desenvolvedor / Autor <span className="text-[#FFDE00]">*</span>
+              </label>
+              <span className="rounded bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-400">Obrigatório</span>
+            </div>
+            <p className="mt-1 text-xs text-zinc-400">
+              Criador ou estúdio principal responsável pelo jogo.
+            </p>
+            <input
+              id="game-dev"
+              required
+              type="text"
+              value={developer}
+              onChange={(e) => onUpdate("developer", e.target.value)}
+              className={`${inputClass} mt-3 text-sm font-semibold`}
+              placeholder="Ex.: Dr PinkCake, Key, Type-Moon, Estúdio Indie..."
+            />
+          </div>
+
+          <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="game-publisher" className="text-sm font-black text-white">
+                Publicadora (Publisher)
+              </label>
+              <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-zinc-400">Opcional</span>
+            </div>
+            <p className="mt-1 text-xs text-zinc-400">
+              Selo editorial ou distribuidora oficial (se houver).
+            </p>
+            <input
+              id="game-publisher"
+              type="text"
+              value={publisher}
+              onChange={(e) => onUpdate("publisher", e.target.value)}
+              className={`${inputClass} mt-3 text-sm font-semibold`}
+              placeholder="Ex.: RenPlay Studios, Sekai Project..."
+            />
+          </div>
+        </div>
+
+        {/* MOTOR GRÁFICO (ENGINE) */}
         <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
           <div className="flex items-center justify-between">
-            <label htmlFor="game-name" className="text-sm font-black text-white">
-              Nome do jogo <span className="text-[#FFDE00]">*</span>
+            <label className="text-sm font-black text-white">
+              Tipo de Jogo / Motor Gráfico (Engine) <span className="text-[#FFDE00]">*</span>
+            </label>
+            <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">Multi-Engine</span>
+          </div>
+          <p className="mt-1 text-xs text-zinc-400">
+            Selecione a tecnologia do jogo. O RenPlay possui suporte otimizado a traduções Ren'Py e compatibilidade com executáveis de outras engines.
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {engineOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onUpdate("engine", opt.value)}
+                className={`rounded-xl border p-3.5 text-left transition ${
+                  (engine || "Ren'Py") === opt.value
+                    ? "border-[#FFDE00] bg-[#FFDE00]/10 shadow-[0_0_15px_rgba(255,222,0,0.15)]"
+                    : "border-[#29292F] bg-[#12141D] hover:border-zinc-600"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-black text-white">{opt.label}</span>
+                  <span className={`rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                    opt.value === "Ren'Py" ? "bg-[#FFDE00] text-black" : "bg-white/10 text-zinc-300"
+                  }`}>
+                    {opt.badge}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">{opt.desc}</p>
+              </button>
+            ))}
+          </div>
+
+          {engine === "Outra" && (
+            <div className="mt-3">
+              <input
+                type="text"
+                value={customEngine}
+                onChange={(e) => onUpdate("customEngine", e.target.value)}
+                className={inputClass}
+                placeholder="Informe o motor customizado (Ex.: Unreal Engine 5, Monogame, HTML5...)"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* CLASSIFICAÇÃO INDICATIVA */}
+        <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-black text-white">
+              Classificação Indicativa Etária <span className="text-[#FFDE00]">*</span>
             </label>
             <span className="rounded bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-400">Obrigatório</span>
           </div>
           <p className="mt-1 text-xs text-zinc-400">
-            Título oficial que aparecerá nos destaques da vitrine, no cabeçalho e na busca do Launcher.
+            Define os alertas de conteúdo e o selo etário exibido no card do jogo.
           </p>
-          <input
-            id="game-name"
+
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+            {classificationOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onUpdate("classification", opt.value)}
+                className={`flex flex-col items-center justify-center rounded-xl border p-3 text-center transition ${
+                  (classification || "18") === opt.value
+                    ? `border-[#FFDE00] bg-[#FFDE00]/15 ring-2 ring-[#FFDE00]/50`
+                    : "border-[#29292F] bg-[#12141D] hover:border-zinc-600"
+                }`}
+              >
+                <span className={`inline-block rounded-lg border px-2.5 py-1 text-xs font-black uppercase tracking-wider ${opt.color}`}>
+                  {opt.label}
+                </span>
+                <span className="mt-1.5 text-[10px] text-zinc-400">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* CATEGORIA E GÊNERO */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+            <label htmlFor="game-category" className="text-sm font-black text-white">
+              Categoria Principal
+            </label>
+            <p className="mt-1 text-xs text-zinc-400">Seção onde o jogo será agrupado na vitrine.</p>
+            <select
+              id="game-category"
+              value={category || "Visual Novel"}
+              onChange={(e) => onUpdate("category", e.target.value)}
+              className={`${inputClass} mt-3 text-sm font-semibold`}
+            >
+              <option value="Visual Novel">Visual Novel</option>
+              <option value="Romance">Romance & Relacionamentos</option>
+              <option value="Aventura">Aventura Interativa</option>
+              <option value="Mistério">Mistério & Investigação</option>
+              <option value="Fantasia">Fantasia & Sobrenatural</option>
+              <option value="Vida Escolar">Vida Escolar & Comédia</option>
+              <option value="Sci-Fi">Ficção Científica</option>
+              <option value="Adulto / 18+">Adulto / 18+</option>
+            </select>
+          </div>
+
+          <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+            <label htmlFor="game-genre" className="text-sm font-black text-white">
+              Gênero Específico
+            </label>
+            <p className="mt-1 text-xs text-zinc-400">Subgênero de jogabilidade da obra.</p>
+            <input
+              id="game-genre"
+              type="text"
+              value={genre || "Visual Novel"}
+              onChange={(e) => onUpdate("genre", e.target.value)}
+              className={`${inputClass} mt-3 text-sm font-semibold`}
+              placeholder="Ex.: Sandbox, Kinetic Novel, Dating Sim, Otome..."
+            />
+          </div>
+        </div>
+
+        {/* TAGS */}
+        <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+          <label className="text-sm font-black text-white">Tags Temáticas</label>
+          <p className="mt-1 text-xs text-zinc-400">Palavras-chave que ajudam os jogadores a encontrar sua obra.</p>
+          <div className="mt-3 flex gap-2">
+            <input
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), onAddTag())}
+              className={`${inputClass} text-sm`}
+              placeholder="Digite uma tag (ex: escolhas importam, comédia, mistério) e pressione Adicionar"
+            />
+            <button
+              type="button"
+              onClick={onAddTag}
+              className="shrink-0 rounded-xl bg-[#FFDE00] px-4 py-3 text-xs font-black text-black hover:bg-[#ffe84d]"
+            >
+              Adicionar
+            </button>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {tags.map((t) => (
+              <span
+                key={t}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#29292F] bg-[#12141D] px-2.5 py-1 text-xs font-semibold text-zinc-300"
+              >
+                #{t}
+                <button
+                  type="button"
+                  onClick={() => onRemoveTag(t)}
+                  className="text-zinc-500 hover:text-red-400"
+                  aria-label={`Remover tag ${t}`}
+                >
+                  &times;
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* DESCRIÇÃO CURTA (CARD RESUME) */}
+        <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="game-short-desc" className="text-sm font-black text-white">
+              Descrição Curta (Resumo para Cards) <span className="text-[#FFDE00]">*</span>
+            </label>
+            <span className={`text-[11px] font-bold ${shortDescription.length > 200 ? "text-amber-400" : "text-zinc-500"}`}>
+              {shortDescription.length}/200 caracteres
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-zinc-400">
+            Resumo direto e atraente que aparecerá nos cards da loja, na busca e na biblioteca do Launcher.
+          </p>
+          <textarea
+            id="game-short-desc"
             required
-            type="text"
-            value={name}
-            onChange={(e) => onUpdate("name", e.target.value)}
-            className={`${inputClass} mt-3 text-base font-semibold`}
-            placeholder="Ex.: Tokyo Memories, Noite em Kyoto, Memórias de Verão..."
+            rows={2}
+            maxLength={220}
+            value={shortDescription}
+            onChange={(e) => onUpdate("shortDescription", e.target.value)}
+            className={`${inputClass} mt-3 text-sm leading-relaxed`}
+            placeholder="Ex.: Acompanhe a rotina em uma universidade cheia de escolhas, amizades e intrigas..."
           />
         </div>
 
-        {/* CAMPO: BANNER HORIZONTAL */}
+        {/* DESCRIÇÃO COMPLETA (SINOPSE) */}
         <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
-          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-            <div>
-              <span className="text-sm font-black text-white">Banner Horizontal da Vitrine</span>
-              <span className="ml-2 rounded bg-[#FFDE00]/10 px-2 py-0.5 text-[10px] font-bold text-[#FFDE00]">Hero & Carrossel</span>
-            </div>
-            {/* Alternador URL / Upload */}
-            <div className="flex rounded-lg border border-[#29292F] bg-[#090A0F] p-0.5 text-[11px] font-bold">
-              <button
-                type="button"
-                onClick={() => onSetBannerMode("url")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
-                  bannerMode === "url" ? "bg-[#FFDE00] text-black" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <Icon name="link" className="h-3 w-3" /> Link / URL
-              </button>
-              <button
-                type="button"
-                onClick={() => onSetBannerMode("upload")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
-                  bannerMode === "upload" ? "bg-[#FFDE00] text-black" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <Icon name="upload" className="h-3 w-3" /> Enviar Imagem
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-2 rounded-xl bg-[#141620] p-3 text-xs text-zinc-400">
-            <p className="leading-relaxed">
-              <strong className="text-white">Onde é exibido:</strong> É a imagem panorâmica principal no topo da página do jogo no site e no grande carrossel animado da tela inicial do RenPlay Launcher.
-            </p>
-            <p className="mt-1 text-[11px] text-zinc-500">
-              💡 <strong className="text-zinc-300">Resolução recomendada:</strong> 1920 × 1080 px ou 16:9 widescreen (PNG, WEBP ou JPG de alta definição).
-            </p>
-          </div>
-
-          {bannerMode === "url" ? (
-            <div className="mt-3">
-              <input
-                type="url"
-                value={horizontalBanner}
-                onChange={(e) => onUpdate("horizontalBanner", e.target.value)}
-                className={inputClass}
-                placeholder="Cole o link da imagem (ex.: https://i.imgur.com/.../banner.png)"
-              />
-            </div>
-          ) : (
-            <div className="mt-3">
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#343744] bg-[#090A0F] p-5 text-center transition hover:border-[#FFDE00]/60">
-                <Icon name="upload" className="h-6 w-6 text-[#FFDE00]" />
-                <span className="mt-2 text-xs font-bold text-white">Clique para escolher a imagem do Banner</span>
-                <span className="mt-1 text-[11px] text-zinc-500">PNG, WEBP ou JPG até 5 MB</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => onFileUpload(e, "horizontalBanner")}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          )}
-
-          {horizontalBanner && (
-            <div className="relative mt-3 overflow-hidden rounded-xl border border-[#29292F] bg-black">
-              <div className="aspect-[16/7] w-full">
-                <img
-                  src={horizontalBanner}
-                  alt="Pré-visualização do Banner"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => onUpdate("horizontalBanner", "")}
-                className="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-black/75 px-2.5 py-1 text-[11px] font-bold text-red-400 backdrop-blur-md hover:bg-red-500/20 hover:text-red-300"
-              >
-                <Icon name="trash" className="h-3 w-3" /> Remover
-              </button>
-              <span className="absolute bottom-2 left-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-emerald-400 backdrop-blur-sm">
-                ✓ Banner carregado
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* CAMPO: PERFIL DO GAME */}
-        <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
-          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-            <div>
-              <span className="text-sm font-black text-white">Perfil do Game (Ícone / Avatar)</span>
-              <span className="ml-2 rounded bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">Avatar Oficial</span>
-            </div>
-            <div className="flex rounded-lg border border-[#29292F] bg-[#090A0F] p-0.5 text-[11px] font-bold">
-              <button
-                type="button"
-                onClick={() => onSetProfileMode("url")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
-                  profileMode === "url" ? "bg-[#FFDE00] text-black" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <Icon name="link" className="h-3 w-3" /> Link / URL
-              </button>
-              <button
-                type="button"
-                onClick={() => onSetProfileMode("upload")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
-                  profileMode === "upload" ? "bg-[#FFDE00] text-black" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <Icon name="upload" className="h-3 w-3" /> Enviar Imagem
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-2 rounded-xl bg-[#141620] p-3 text-xs text-zinc-400">
-            <p className="leading-relaxed">
-              <strong className="text-white">Onde é exibido:</strong> É a foto de perfil/identidade do jogo. Ela aparece na lista rápida da barra lateral do Launcher, nas notificações, nos resultados de busca e como selo de apresentação.
-            </p>
-            <p className="mt-1 text-[11px] text-zinc-500">
-              💡 <strong className="text-zinc-300">Resolução recomendada:</strong> 512 × 512 px formato 1:1 quadrado (PNG com transparência ou WEBP/JPG).
-            </p>
-          </div>
-
-          {profileMode === "url" ? (
-            <div className="mt-3">
-              <input
-                type="url"
-                value={gameIcon}
-                onChange={(e) => onUpdate("gameIcon", e.target.value)}
-                className={inputClass}
-                placeholder="Cole o link do ícone/perfil (ex.: https://i.imgur.com/.../icone.png)"
-              />
-            </div>
-          ) : (
-            <div className="mt-3">
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#343744] bg-[#090A0F] p-5 text-center transition hover:border-[#FFDE00]/60">
-                <Icon name="upload" className="h-6 w-6 text-emerald-400" />
-                <span className="mt-2 text-xs font-bold text-white">Clique para escolher a imagem de Perfil</span>
-                <span className="mt-1 text-[11px] text-zinc-500">Quadrada (1:1), PNG ou WEBP até 5 MB</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => onFileUpload(e, "gameIcon")}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          )}
-
-          {gameIcon && (
-            <div className="mt-3 flex items-center gap-4 rounded-xl border border-[#29292F] bg-black p-3">
-              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 border-[#FFDE00]/80 bg-[#12141D]">
-                <img
-                  src={gameIcon}
-                  alt="Pré-visualização do Perfil"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black text-white">Perfil do Jogo Carregado</p>
-                <p className="truncate text-[11px] text-zinc-400">Exibição perfeita em proporção 1:1</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onUpdate("gameIcon", "")}
-                className="flex items-center gap-1 rounded-lg bg-red-500/10 px-2.5 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/20"
-              >
-                <Icon name="trash" className="h-3.5 w-3.5" /> Remover
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* CAMPO: REPOSITÓRIO GITHUB */}
-        <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
-          <div className="flex items-center justify-between">
-            <label htmlFor="game-github" className="flex items-center gap-2 text-sm font-black text-white">
-              <Icon name="github" className="h-4 w-4 text-white" />
-              Repositório ou Projeto no GitHub
-            </label>
-            <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-bold text-zinc-300">Open Source / Código</span>
-          </div>
+          <label htmlFor="game-full-desc" className="text-sm font-black text-white">
+            Sinopse & Descrição Completa
+          </label>
           <p className="mt-1 text-xs text-zinc-400">
-            Vincule o repositório público do seu jogo no GitHub. Permite que jogadores e desenvolvedores acompanhem o código, releases e relatem sugestões e bugs.
+            Texto detalhado exibido na página dedicada do jogo, contando o enredo, mecânicas e advertências.
           </p>
-          <div className="relative mt-3">
-            <input
-              id="game-github"
-              type="url"
-              value={githubUrl}
-              onChange={(e) => onUpdate("githubUrl", e.target.value)}
-              className={`${inputClass} pr-24`}
-              placeholder="https://github.com/usuario/meu-jogo-renpy"
-            />
-            {githubUrl && (
-              <a
-                href={githubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="absolute top-5 right-3 flex items-center gap-1 text-[11px] font-bold text-[#FFDE00] hover:underline"
-              >
-                Testar link <Icon name="external" className="h-3 w-3" />
-              </a>
-            )}
-          </div>
-          {githubUrl && (
-            <div className="mt-2 flex items-center gap-2">
-              {isGithubValid ? (
-                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
-                  <Icon name="check" className="h-3 w-3" /> Link válido do GitHub
-                </span>
-              ) : (
-                <span className="text-[11px] text-amber-400">
-                  ⚠️ Insira a URL completa (exemplo: https://github.com/seu-usuario/seu-jogo)
-                </span>
-              )}
-            </div>
-          )}
+          <textarea
+            id="game-full-desc"
+            rows={6}
+            value={fullDescription}
+            onChange={(e) => onUpdate("fullDescription", e.target.value)}
+            className={`${inputClass} mt-3 text-sm leading-relaxed`}
+            placeholder="Descreva a história completa, as personagens centrais, os múltiplos finais e informações de suporte..."
+          />
         </div>
       </div>
     </section>

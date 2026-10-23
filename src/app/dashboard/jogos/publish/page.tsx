@@ -4,17 +4,17 @@ import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { Step, ImageInputMode, Status } from "@/components/publish/types";
+import { Step, ImageInputMode, Status, SystemRequirements } from "@/components/publish/types";
 import { StepNav, stepsList } from "@/components/publish/StepNav";
 import { Step1Identity } from "@/components/publish/Step1Identity";
-import { Step2Information } from "@/components/publish/Step2Information";
-import { Step3LanguagesTags } from "@/components/publish/Step3LanguagesTags";
 import { Step4Gallery } from "@/components/publish/Step4Gallery";
 import { Step5Files } from "@/components/publish/Step5Files";
+import { Step3LanguagesTags } from "@/components/publish/Step3LanguagesTags";
+import { Step2Information } from "@/components/publish/Step2Information";
 import { Step6Launch, ReadinessItem } from "@/components/publish/Step6Launch";
 import { PublishLivePreview } from "@/components/publish/PublishLivePreview";
 
-const platformOptions = ["Windows", "Android", "Linux", "macOS", "Web Browser"];
+const platformOptions = ["Windows", "Linux", "macOS", "Android", "Web Browser"];
 
 export default function PublishGamePage() {
   const router = useRouter();
@@ -31,40 +31,65 @@ export default function PublishGamePage() {
 
   const [form, setForm] = useState({
     name: "",
-    shortDescription: "",
-    fullDescription: "",
+    slug: "",
     developer: "",
     publisher: "",
     genre: "Visual Novel",
-    category: "",
-    version: "1.0.0",
-    originalReleaseDate: "",
-    renplayPublishDate: "",
-    lastUpdateDate: "",
-    translatedBy: "",
+    category: "Visual Novel",
+    classification: "18",
+    engine: "Ren'Py",
+    customEngine: "",
+    shortDescription: "",
+    fullDescription: "",
     gameIcon: "",
-    mainCover: "",
     horizontalBanner: "",
-    githubUrl: "",
+    mainCover: "",
     screenshots: "",
-    downloadUrl: "",
+    trailerUrl: "",
+    githubUrl: "",
+    version: "1.0.0",
     mainFileName: "",
     fileSize: "",
-    fileVersion: "1.0.0",
+    sha256: "",
+    downloadUrl: "",
+    systemRequirements: {
+      os: "Windows 10 / 11 (64-bit)",
+      cpu: "Intel Core i3 / AMD equivalente 2.0 GHz",
+      ram: "2 GB",
+      gpu: "Gráficos com suporte a OpenGL 2.0 / DirectX 11",
+      storage: "1 GB de espaço livre"
+    } as SystemRequirements,
+    translationStatus: "Completa",
+    translatedBy: "Equipe RenPlay Brasil",
+    translationNotes: "",
+    status: "DRAFT" as Status,
+    originalReleaseDate: "",
+    renplayPublishDate: new Date().toISOString().split("T")[0],
+    featuredOrder: 0,
+    releaseNotes: "",
     responsibleDev: "",
     responsibleTranslator: "",
     editPermissions: "admin_only",
     scheduledPublishDate: "",
-    changeLog: "",
-    status: "DRAFT" as Status
+    changeLog: ""
   });
 
   const [platforms, setPlatforms] = useState<string[]>(["Windows"]);
-  const [tags, setTags] = useState<string[]>(["Visual Novel", "Anime"]);
-  const [languages, setLanguages] = useState<string[]>(["Português (Brasil)"]);
+  const [tags, setTags] = useState<string[]>(["Visual Novel", "Romance", "Anime"]);
+  const [languages, setLanguages] = useState<string[]>(["Português (Brasil)", "Inglês"]);
 
-  const update = (field: string, value: string) => {
+  const update = (field: string, value: string | number) => {
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const updateRequirements = (reqField: keyof SystemRequirements, value: string) => {
+    setForm((current) => ({
+      ...current,
+      systemRequirements: {
+        ...current.systemRequirements,
+        [reqField]: value
+      }
+    }));
   };
 
   const handleFileUpload = (
@@ -103,6 +128,10 @@ export default function PublishGamePage() {
     setTagInput("");
   };
 
+  const removeTag = (tagToRemove: string) => {
+    setTags((current) => current.filter((t) => t !== tagToRemove));
+  };
+
   const addLanguage = () => {
     const clean = languageInput.trim();
     if (!clean) return;
@@ -127,19 +156,19 @@ export default function PublishGamePage() {
   const readiness: ReadinessItem[] = useMemo(
     () => [
       { label: "Nome do jogo", ready: Boolean(form.name.trim()), detail: form.name || "Pendente" },
-      { label: "Banner da Vitrine", ready: Boolean(form.horizontalBanner.trim()), detail: form.horizontalBanner ? "Configurado" : "Pendente" },
-      { label: "Perfil do Game", ready: Boolean(form.gameIcon.trim()), detail: form.gameIcon ? "Configurado" : "Opcional" },
-      { label: "Repositório GitHub", ready: Boolean(form.githubUrl.trim()), detail: form.githubUrl ? "Vinculado" : "Opcional" },
-      { label: "Desenvolvedor", ready: Boolean(form.developer.trim()), detail: form.developer || "Pendente" },
-      { label: "Gênero Principal", ready: Boolean(form.genre.trim()), detail: form.genre || "Pendente" },
-      { label: "Resumo da Vitrine", ready: Boolean(form.shortDescription.trim()), detail: form.shortDescription ? "Preenchido" : "Pendente" },
-      { label: "Capa Principal (Pôster)", ready: Boolean(form.mainCover.trim()), detail: form.mainCover ? "Configurada" : "Pendente" },
-      { label: "URL de Download", ready: Boolean(form.downloadUrl.trim()), detail: form.downloadUrl ? "Configurada" : "Pendente" },
+      { label: "Slug personalizado", ready: Boolean(form.slug.trim()), detail: form.slug ? `/jogo/${form.slug}` : "Pendente" },
+      { label: "Desenvolvedor / Estúdio", ready: Boolean(form.developer.trim()), detail: form.developer || "Pendente" },
+      { label: "Motor Gráfico (Engine)", ready: Boolean(form.engine), detail: form.engine === "Outra" ? form.customEngine || "Outro" : form.engine },
+      { label: "Classificação Indicativa", ready: Boolean(form.classification), detail: `${form.classification} anos` },
+      { label: "Resumo para Cards", ready: Boolean(form.shortDescription.trim()), detail: form.shortDescription ? "Preenchido" : "Pendente" },
+      { label: "Banner Hero (16:9)", ready: Boolean(form.horizontalBanner.trim()), detail: form.horizontalBanner ? "Configurado" : "Pendente" },
+      { label: "Capa Pôster ou Ícone", ready: Boolean(form.mainCover.trim() || form.gameIcon.trim()), detail: form.mainCover || form.gameIcon ? "Configurada" : "Pendente" },
+      { label: "Link de Download", ready: Boolean(form.downloadUrl.trim()), detail: form.downloadUrl ? "Configurado" : "Pendente" },
       { label: "Plataformas", ready: platforms.length > 0, detail: platforms.join(", ") || "Nenhuma" },
-      { label: "Idiomas", ready: languages.length > 0, detail: languages.join(", ") || "Nenhum" },
-      { label: "Tags", ready: tags.length > 0, detail: `${tags.length} selecionadas` }
+      { label: "Status da Tradução", ready: Boolean(form.translationStatus), detail: form.translationStatus || "Completa" },
+      { label: "Idiomas Suportados", ready: languages.length > 0, detail: languages.join(", ") || "Nenhum" }
     ],
-    [form, platforms, languages, tags]
+    [form, platforms, languages]
   );
 
   const completedCount = readiness.filter((r) => r.ready).length;
@@ -153,35 +182,48 @@ export default function PublishGamePage() {
 
     const payload = {
       name: form.name,
-      description: form.shortDescription,
-      fullDescription: form.fullDescription,
+      slug: form.slug,
       developer: form.developer,
       publisher: form.publisher,
       genre: form.genre,
       category: form.category,
-      version: form.version,
-      originalReleaseDate: form.originalReleaseDate,
-      renplayPublishDate: form.renplayPublishDate,
-      lastUpdateDate: form.lastUpdateDate,
-      translatedBy: form.translatedBy,
-      coverImage: form.mainCover || form.gameIcon,
-      bannerImage: form.horizontalBanner,
+      classification: form.classification,
+      engine: form.engine,
+      customEngine: form.customEngine,
+      shortDescription: form.shortDescription,
+      description: form.shortDescription,
+      fullDescription: form.fullDescription,
       gameIcon: form.gameIcon,
-      githubUrl: form.githubUrl,
-      downloadUrl: form.downloadUrl,
+      horizontalBanner: form.horizontalBanner,
+      bannerImage: form.horizontalBanner,
+      mainCover: form.mainCover,
+      coverImage: form.mainCover || form.gameIcon,
       screenshots,
-      platforms,
-      tags,
-      languages,
-      status: form.status,
+      trailerUrl: form.trailerUrl,
+      githubUrl: form.githubUrl,
+      version: form.version,
       mainFileName: form.mainFileName,
       fileSize: form.fileSize,
-      fileVersion: form.fileVersion,
+      sha256: form.sha256,
+      downloadUrl: form.downloadUrl,
+      platforms,
+      systemRequirements: form.systemRequirements,
+      languages,
+      translationStatus: form.translationStatus,
+      translatedBy: form.translatedBy,
+      translationNotes: form.translationNotes,
+      status: form.status,
+      originalReleaseDate: form.originalReleaseDate,
+      renplayPublishDate: form.renplayPublishDate,
+      featuredOrder: Number(form.featuredOrder) || 0,
+      versionNotes: form.releaseNotes,
+      releaseNotes: form.releaseNotes,
       responsibleDev: form.responsibleDev,
       responsibleTranslator: form.responsibleTranslator,
       editPermissions: form.editPermissions,
       scheduledPublishDate: form.scheduledPublishDate,
-      changeLog: form.changeLog
+      changeLog: form.changeLog || form.releaseNotes,
+      tags
     };
 
     const response = await fetch("/api/games", {
@@ -198,7 +240,7 @@ export default function PublishGamePage() {
       return;
     }
 
-    setNotice(form.status === "PUBLISHED" ? "Jogo publicado com sucesso no catálogo!" : "Rascunho salvo com sucesso.");
+    setNotice(form.status === "PUBLISHED" ? "Jogo publicado com sucesso no catálogo e no Launcher!" : "Rascunho salvo com sucesso.");
     window.setTimeout(() => router.push("/dashboard/jogos"), 700);
   };
 
@@ -218,7 +260,7 @@ export default function PublishGamePage() {
           </Link>
           <div className="flex items-center gap-4">
             <div className="hidden items-center gap-2 sm:flex">
-              <span className="text-xs text-zinc-400">Progresso geral:</span>
+              <span className="text-xs text-zinc-400">Prontidão da Loja:</span>
               <div className="h-2 w-28 overflow-hidden rounded-full bg-zinc-800">
                 <div
                   className="h-full bg-gradient-to-r from-[#FFDE00] to-emerald-400 transition-all duration-300"
@@ -245,15 +287,15 @@ export default function PublishGamePage() {
               href="/dashboard/jogos/publish"
               className="block min-h-11 rounded-xl bg-[#FFDE00] px-3.5 py-3 text-xs font-black text-black"
             >
-              03&nbsp;&nbsp; Publicar jogo
+              03&nbsp;&nbsp; Cadastrar novo jogo
             </Link>
             <SideLink href="/dashboard/usuarios">04&nbsp;&nbsp; Equipe e acessos</SideLink>
           </nav>
 
           <div className="mt-8 hidden rounded-2xl border border-[#29292F] bg-[#12141D] p-4 md:block">
-            <p className="text-xs font-black text-white">Passo a Passo</p>
+            <p className="text-xs font-black text-white">Loja & Launcher</p>
             <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
-              O formulário agora é dividido em 6 categorias lógicas para uma experiência de publicação clara, organizada e completa.
+              O formulário é estruturado em 6 etapas completas: Básico, Mídia, Download, Idiomas, Publicação e Comunidade.
             </p>
           </div>
         </aside>
@@ -265,18 +307,18 @@ export default function PublishGamePage() {
             <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">
-                  Editor de catálogo &bull; Passo a Passo por Categorias
+                  RenPlay Admin &bull; Cadastro Oficial de Jogos
                 </p>
                 <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
                   {stepsList[step - 1].category}: {stepsList[step - 1].title}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-                  {stepsList[step - 1].description}. Siga as etapas abaixo para cadastrar e publicar sua obra com qualidade máxima.
+                  {stepsList[step - 1].description}. Siga as etapas para sincronizar sua obra com o banco Neon e o Launcher.
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="rounded-xl border border-[#29292F] bg-[#12141D] px-4 py-2.5 text-xs text-zinc-400">
-                  <span className="font-black text-[#FFDE00]">Categoria {step}</span> de 6
+                  <span className="font-black text-[#FFDE00]">Etapa {step}</span> de 6
                 </div>
               </div>
             </div>
@@ -287,88 +329,103 @@ export default function PublishGamePage() {
             {/* Formulário Principal */}
             <form onSubmit={save} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="space-y-6">
+                {/* ETAPA 1: INFORMAÇÕES BÁSICAS */}
                 {step === 1 && (
                   <Step1Identity
                     name={form.name}
-                    horizontalBanner={form.horizontalBanner}
-                    gameIcon={form.gameIcon}
-                    githubUrl={form.githubUrl}
-                    bannerMode={bannerMode}
-                    profileMode={profileMode}
-                    isGithubValid={isGithubValid}
-                    onUpdate={update}
-                    onSetBannerMode={setBannerMode}
-                    onSetProfileMode={setProfileMode}
-                    onFileUpload={handleFileUpload}
-                  />
-                )}
-
-                {step === 2 && (
-                  <Step2Information
+                    slug={form.slug}
                     developer={form.developer}
                     publisher={form.publisher}
                     genre={form.genre}
                     category={form.category}
-                    version={form.version}
-                    originalReleaseDate={form.originalReleaseDate}
+                    classification={form.classification}
+                    engine={form.engine}
+                    customEngine={form.customEngine}
                     shortDescription={form.shortDescription}
                     fullDescription={form.fullDescription}
-                    onUpdate={update}
-                  />
-                )}
-
-                {step === 3 && (
-                  <Step3LanguagesTags
-                    languages={languages}
-                    setLanguages={setLanguages}
-                    languageInput={languageInput}
-                    setLanguageInput={setLanguageInput}
-                    onAddLanguage={addLanguage}
-                    translatedBy={form.translatedBy}
                     tags={tags}
-                    setTags={setTags}
                     tagInput={tagInput}
                     setTagInput={setTagInput}
                     onAddTag={addTag}
+                    onRemoveTag={removeTag}
                     onUpdate={update}
                   />
                 )}
 
-                {step === 4 && (
+                {/* ETAPA 2: IMAGENS E MÍDIA */}
+                {step === 2 && (
                   <Step4Gallery
+                    gameIcon={form.gameIcon}
+                    horizontalBanner={form.horizontalBanner}
                     mainCover={form.mainCover}
-                    coverMode={coverMode}
+                    trailerUrl={form.trailerUrl}
+                    githubUrl={form.githubUrl}
                     screenshots={form.screenshots}
+                    bannerMode={bannerMode}
+                    profileMode={profileMode}
+                    coverMode={coverMode}
+                    isGithubValid={isGithubValid}
+                    onSetBannerMode={setBannerMode}
+                    onSetProfileMode={setProfileMode}
                     onSetCoverMode={setCoverMode}
                     onUpdate={update}
                     onFileUpload={handleFileUpload}
                   />
                 )}
 
-                {step === 5 && (
+                {/* ETAPA 3: DOWNLOAD E INSTALAÇÃO */}
+                {step === 3 && (
                   <Step5Files
+                    version={form.version}
+                    platforms={platforms}
+                    platformOptions={platformOptions}
                     downloadUrl={form.downloadUrl}
                     mainFileName={form.mainFileName}
                     fileSize={form.fileSize}
-                    fileVersion={form.fileVersion}
-                    platforms={platforms}
-                    platformOptions={platformOptions}
+                    sha256={form.sha256}
+                    systemRequirements={form.systemRequirements}
                     onTogglePlatform={togglePlatform}
+                    onUpdate={update}
+                    onUpdateRequirements={updateRequirements}
+                  />
+                )}
+
+                {/* ETAPA 4: IDIOMAS E TRADUÇÕES */}
+                {step === 4 && (
+                  <Step3LanguagesTags
+                    languages={languages}
+                    setLanguages={setLanguages}
+                    languageInput={languageInput}
+                    setLanguageInput={setLanguageInput}
+                    onAddLanguage={addLanguage}
+                    translationStatus={form.translationStatus}
+                    translatedBy={form.translatedBy}
+                    translationNotes={form.translationNotes}
                     onUpdate={update}
                   />
                 )}
 
+                {/* ETAPA 5: PUBLICAÇÃO E DESTAQUE */}
+                {step === 5 && (
+                  <Step2Information
+                    status={form.status}
+                    originalReleaseDate={form.originalReleaseDate}
+                    renplayPublishDate={form.renplayPublishDate}
+                    featuredOrder={form.featuredOrder}
+                    releaseNotes={form.releaseNotes}
+                    responsibleDev={form.responsibleDev}
+                    editPermissions={form.editPermissions}
+                    onUpdate={update}
+                  />
+                )}
+
+                {/* ETAPA 6: COMUNIDADE E PRÉ-VISUALIZAÇÃO */}
                 {step === 6 && (
                   <Step6Launch
                     readiness={readiness}
                     completedCount={completedCount}
                     progressPercent={progressPercent}
                     status={form.status}
-                    responsibleDev={form.responsibleDev}
-                    responsibleTranslator={form.responsibleTranslator}
-                    editPermissions={form.editPermissions}
-                    scheduledPublishDate={form.scheduledPublishDate}
-                    changeLog={form.changeLog}
                     onUpdate={update}
                   />
                 )}
@@ -416,7 +473,7 @@ export default function PublishGamePage() {
                         onClick={next}
                         className="inline-flex items-center gap-2 rounded-xl bg-[#FFDE00] px-6 py-3 text-xs font-black text-black hover:bg-[#ffe84d]"
                       >
-                        Próxima categoria: {stepsList[step].title} <Icon name="arrow" />
+                        Próxima etapa: {stepsList[step].title} <Icon name="arrow" />
                       </button>
                     ) : (
                       <button
@@ -425,7 +482,7 @@ export default function PublishGamePage() {
                         className="inline-flex items-center gap-2 rounded-xl bg-[#FFDE00] px-6 py-3 text-xs font-black text-black hover:bg-[#ffe84d] disabled:opacity-60"
                       >
                         <Icon name="rocket" />
-                        {saving ? "Salvando..." : form.status === "PUBLISHED" ? "Concluir e publicar" : "Salvar rascunho"}
+                        {saving ? "Salvando..." : form.status === "PUBLISHED" ? "Concluir e publicar na loja" : "Salvar rascunho"}
                       </button>
                     )}
                   </div>
@@ -435,11 +492,16 @@ export default function PublishGamePage() {
               {/* ASIDE: LIVE PREVIEW NA VITRINE */}
               <PublishLivePreview
                 name={form.name}
+                slug={form.slug}
                 developer={form.developer}
                 genre={form.genre}
+                engine={form.engine === "Outra" ? form.customEngine || "Outro" : form.engine}
+                classification={form.classification}
                 version={form.version}
                 fileSize={form.fileSize}
+                platforms={platforms}
                 languages={languages}
+                translationStatus={form.translationStatus}
                 tags={tags}
                 status={form.status}
                 shortDescription={form.shortDescription}
