@@ -5,7 +5,6 @@ import { Status } from "./types";
 
 interface PublishLivePreviewProps {
   name: string;
-  slug: string;
   developer: string;
   genre: string;
   engine: string;
@@ -26,7 +25,6 @@ interface PublishLivePreviewProps {
 
 export function PublishLivePreview({
   name,
-  slug,
   developer,
   genre,
   engine,
@@ -120,10 +118,6 @@ export function PublishLivePreview({
 
           {/* Detalhes do Card */}
           <div className="space-y-3 p-4">
-            {/* Slug URL */}
-            <div className="rounded-lg border border-[#29292F] bg-[#12141D] px-2.5 py-1 text-[10px] font-mono text-zinc-400">
-              <span className="text-[#FFDE00]">URL:</span> /jogo/{slug || "slug-do-jogo"}
-            </div>
 
             {/* Badge de Tradução */}
             {translationStatus && (

@@ -1,12 +1,10 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Icon } from "../ui/Icon";
 import { SectionTitle, inputClass, panelClass } from "./FormControls";
 
 interface Step1IdentityProps {
   name: string;
-  slug: string;
   developer: string;
-  publisher: string;
   genre: string;
   category: string;
   classification: string;
@@ -40,9 +38,7 @@ const engineOptions = [
 
 export function Step1Identity({
   name,
-  slug,
   developer,
-  publisher,
   genre,
   category,
   classification,
@@ -57,22 +53,6 @@ export function Step1Identity({
   onRemoveTag,
   onUpdate
 }: Step1IdentityProps) {
-  // Geração automática do slug a partir do nome se o slug ainda não foi editado manualmente
-  useEffect(() => {
-    if (name && (!slug || slug === generateSlug(name.slice(0, -1)))) {
-      onUpdate("slug", generateSlug(name));
-    }
-  }, [name]);
-
-  function generateSlug(text: string) {
-    return text
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  }
-
   return (
     <section className={panelClass}>
       <SectionTitle
@@ -81,7 +61,7 @@ export function Step1Identity({
       />
 
       <div className="space-y-6">
-        {/* NOME DO JOGO E SLUG */}
+        {/* NOME DO JOGO E DESENVOLVEDOR */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
             <div className="flex items-center justify-between">
@@ -106,32 +86,6 @@ export function Step1Identity({
 
           <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
             <div className="flex items-center justify-between">
-              <label htmlFor="game-slug" className="text-sm font-black text-white">
-                Slug (URL Amigável) <span className="text-[#FFDE00]">*</span>
-              </label>
-              <span className="rounded bg-[#FFDE00]/10 px-2 py-0.5 text-[10px] font-bold text-[#FFDE00]">Auto / URL</span>
-            </div>
-            <p className="mt-1 text-xs text-zinc-400">
-              Identificador da página: <span className="font-mono text-zinc-300">/jogo/{slug || "nome-do-jogo"}</span>
-            </p>
-            <div className="mt-3 flex items-center rounded-xl border border-[#29292F] bg-[#12141D] px-3 focus-within:border-[#FFDE00]">
-              <span className="text-xs font-bold text-zinc-500 select-none">/jogo/</span>
-              <input
-                id="game-slug"
-                type="text"
-                value={slug}
-                onChange={(e) => onUpdate("slug", generateSlug(e.target.value))}
-                className="w-full bg-transparent px-1 py-3 text-sm font-bold text-white outline-none placeholder:text-zinc-600"
-                placeholder="nome-do-jogo"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* DESENVOLVEDOR E ESTÚDIO */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
-            <div className="flex items-center justify-between">
               <label htmlFor="game-dev" className="text-sm font-black text-white">
                 Desenvolvedor / Autor <span className="text-[#FFDE00]">*</span>
               </label>
@@ -146,28 +100,8 @@ export function Step1Identity({
               type="text"
               value={developer}
               onChange={(e) => onUpdate("developer", e.target.value)}
-              className={`${inputClass} mt-3 text-sm font-semibold`}
+              className={`${inputClass} mt-3 text-base font-semibold`}
               placeholder="Ex.: Dr PinkCake, Key, Type-Moon, Estúdio Indie..."
-            />
-          </div>
-
-          <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="game-publisher" className="text-sm font-black text-white">
-                Publicadora (Publisher)
-              </label>
-              <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-zinc-400">Opcional</span>
-            </div>
-            <p className="mt-1 text-xs text-zinc-400">
-              Selo editorial ou distribuidora oficial (se houver).
-            </p>
-            <input
-              id="game-publisher"
-              type="text"
-              value={publisher}
-              onChange={(e) => onUpdate("publisher", e.target.value)}
-              className={`${inputClass} mt-3 text-sm font-semibold`}
-              placeholder="Ex.: RenPlay Studios, Sekai Project..."
             />
           </div>
         </div>

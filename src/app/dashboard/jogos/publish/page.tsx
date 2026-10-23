@@ -152,7 +152,6 @@ export default function PublishGamePage() {
   const readiness: ReadinessItem[] = useMemo(
     () => [
       { label: "Nome do jogo", ready: Boolean(form.name.trim()), detail: form.name || "Pendente" },
-      { label: "Slug personalizado", ready: Boolean(form.slug.trim()), detail: form.slug ? `/jogo/${form.slug}` : "Pendente" },
       { label: "Desenvolvedor / Estúdio", ready: Boolean(form.developer.trim()), detail: form.developer || "Pendente" },
       { label: "Motor Gráfico (Engine)", ready: Boolean(form.engine), detail: form.engine === "Outra" ? form.customEngine || "Outro" : form.engine },
       { label: "Classificação Indicativa", ready: Boolean(form.classification), detail: `${form.classification} anos` },
@@ -329,9 +328,7 @@ export default function PublishGamePage() {
                 {step === 1 && (
                   <Step1Identity
                     name={form.name}
-                    slug={form.slug}
                     developer={form.developer}
-                    publisher={form.publisher}
                     genre={form.genre}
                     category={form.category}
                     classification={form.classification}
@@ -486,7 +483,6 @@ export default function PublishGamePage() {
               {/* ASIDE: LIVE PREVIEW NA VITRINE */}
               <PublishLivePreview
                 name={form.name}
-                slug={form.slug}
                 developer={form.developer}
                 genre={form.genre}
                 engine={form.engine === "Outra" ? form.customEngine || "Outro" : form.engine}
