@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local git toggle helpers
+.git_backup
+ativar-git.bat
+desativar-git.bat
+*.bak
+
