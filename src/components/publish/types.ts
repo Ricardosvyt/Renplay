@@ -10,6 +10,15 @@ export interface SystemRequirements {
   storage: string;
 }
 
+export interface DownloadMirror {
+  id: string;
+  name: string;
+  url: string;
+  priority: number;
+  provider: string;
+  status: string;
+}
+
 export interface PublishFormData {
   // 1. Informações básicas
   name: string;
@@ -37,6 +46,7 @@ export interface PublishFormData {
   version: string;
   platforms: string[];
   downloadUrl: string;
+  downloadMirrors: DownloadMirror[];
   mainFileName: string;
   fileSize: string;
   sha256: string;

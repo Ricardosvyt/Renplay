@@ -191,6 +191,7 @@ export async function POST(request: NextRequest) {
       trailerUrl?: string;
       githubUrl?: string;
       downloadUrl?: string;
+      downloadMirrors?: Array<{ id: string; name?: string; url: string; provider?: string; priority?: number }>;
       platforms?: string[];
       systemRequirements?: Record<string, string>;
       languages?: string[];
@@ -244,6 +245,7 @@ export async function POST(request: NextRequest) {
       fileSize: body.fileSize?.trim() || "",
       sha256: body.sha256?.trim() || "",
       downloadUrl: body.downloadUrl?.trim() || "",
+      downloadMirrors: Array.isArray(body.downloadMirrors) ? body.downloadMirrors : [],
       platforms: Array.isArray(body.platforms) && body.platforms.length ? body.platforms : ["Windows"],
       systemRequirements: body.systemRequirements || {},
       languages: Array.isArray(body.languages) && body.languages.length ? body.languages : ["Português (Brasil)"],

@@ -4,7 +4,7 @@ import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { Step, ImageInputMode, Status, SystemRequirements } from "@/components/publish/types";
+import { Step, ImageInputMode, Status, SystemRequirements, DownloadMirror } from "@/components/publish/types";
 import { StepNav, stepsList } from "@/components/publish/StepNav";
 import { Step1Identity } from "@/components/publish/Step1Identity";
 import { Step4Gallery } from "@/components/publish/Step4Gallery";
@@ -52,6 +52,7 @@ export default function PublishGamePage() {
     fileSize: "",
     sha256: "",
     downloadUrl: "",
+    downloadMirrors: [] as DownloadMirror[],
     systemRequirements: {
       os: "Windows 10 / 11 (64-bit)",
       cpu: "Intel Core i3 / AMD equivalente 2.0 GHz",
@@ -89,6 +90,20 @@ export default function PublishGamePage() {
         ...current.systemRequirements,
         [reqField]: value
       }
+    }));
+  };
+
+  const addMirror = (mirror: DownloadMirror) => {
+    setForm((current) => ({
+      ...current,
+      downloadMirrors: [...current.downloadMirrors, mirror]
+    }));
+  };
+
+  const removeMirror = (id: string) => {
+    setForm((current) => ({
+      ...current,
+      downloadMirrors: current.downloadMirrors.filter((m) => m.id !== id)
     }));
   };
 
@@ -201,6 +216,7 @@ export default function PublishGamePage() {
       fileSize: form.fileSize,
       sha256: form.sha256,
       downloadUrl: form.downloadUrl,
+      downloadMirrors: form.downloadMirrors,
       platforms,
       systemRequirements: form.systemRequirements,
       languages,
@@ -371,6 +387,7 @@ export default function PublishGamePage() {
                     platforms={platforms}
                     platformOptions={platformOptions}
                     downloadUrl={form.downloadUrl}
+                    downloadMirrors={form.downloadMirrors}
                     mainFileName={form.mainFileName}
                     fileSize={form.fileSize}
                     sha256={form.sha256}
@@ -378,6 +395,8 @@ export default function PublishGamePage() {
                     onTogglePlatform={togglePlatform}
                     onUpdate={update}
                     onUpdateRequirements={updateRequirements}
+                    onAddMirror={addMirror}
+                    onRemoveMirror={removeMirror}
                   />
                 )}
 
