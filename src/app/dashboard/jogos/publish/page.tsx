@@ -136,10 +136,21 @@ export default function PublishGamePage() {
     );
   };
 
-  const addTag = () => {
-    const clean = tagInput.trim().replace(/^#/, "");
-    if (!clean) return;
-    if (!tags.includes(clean)) setTags([...tags, clean]);
+  const addTag = (textToAdd?: string) => {
+    const raw = (typeof textToAdd === "string" ? textToAdd : tagInput).trim();
+    if (!raw) return;
+    const parts = raw
+      .split(/[,;\n]+/)
+      .map((t) => t.trim().replace(/^#+/, ""))
+      .filter((t) => t.length > 0);
+    if (parts.length === 0) return;
+    setTags((current) => {
+      const next = [...current];
+      for (const p of parts) {
+        if (!next.includes(p)) next.push(p);
+      }
+      return next;
+    });
     setTagInput("");
   };
 
@@ -147,10 +158,21 @@ export default function PublishGamePage() {
     setTags((current) => current.filter((t) => t !== tagToRemove));
   };
 
-  const addLanguage = () => {
-    const clean = languageInput.trim();
-    if (!clean) return;
-    if (!languages.includes(clean)) setLanguages([...languages, clean]);
+  const addLanguage = (textToAdd?: string) => {
+    const raw = (typeof textToAdd === "string" ? textToAdd : languageInput).trim();
+    if (!raw) return;
+    const parts = raw
+      .split(/[,;\n]+/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (parts.length === 0) return;
+    setLanguages((current) => {
+      const next = [...current];
+      for (const p of parts) {
+        if (!next.includes(p)) next.push(p);
+      }
+      return next;
+    });
     setLanguageInput("");
   };
 

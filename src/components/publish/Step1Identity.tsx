@@ -15,7 +15,7 @@ interface Step1IdentityProps {
   tags: string[];
   tagInput: string;
   setTagInput: (val: string) => void;
-  onAddTag: () => void;
+  onAddTag: (textToAdd?: string) => void;
   onRemoveTag: (tag: string) => void;
   onUpdate: (field: string, value: string) => void;
 }
@@ -231,21 +231,40 @@ export function Step1Identity({
 
         {/* TAGS */}
         <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
-          <label className="text-sm font-black text-white">Tags Temáticas</label>
-          <p className="mt-1 text-xs text-zinc-400">Palavras-chave que ajudam os jogadores a encontrar sua obra.</p>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-black text-white">Tags Temáticas</label>
+            <span className="text-[11px] font-bold text-zinc-400">
+              {tags.length} selecionada{tags.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-zinc-400">
+            Palavras-chave que ajudam os jogadores a encontrar sua obra. Digite várias tags separadas por vírgula (ex: <span className="text-zinc-300">romance, escolhas importam, comédia</span>).
+          </p>
           <div className="mt-3 flex gap-2">
             <input
               type="text"
               value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), onAddTag())}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val.includes(",") || val.includes(";")) {
+                  onAddTag(val);
+                } else {
+                  setTagInput(val);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  onAddTag();
+                }
+              }}
               className={`${inputClass} text-sm`}
-              placeholder="Digite uma tag (ex: escolhas importam, comédia, mistério) e pressione Adicionar"
+              placeholder="Digite tags separadas por vírgula (ex: romance, escolhas importam, mistério) e pressione Adicionar"
             />
             <button
               type="button"
-              onClick={onAddTag}
-              className="shrink-0 rounded-xl bg-[#FFDE00] px-4 py-3 text-xs font-black text-black hover:bg-[#ffe84d]"
+              onClick={() => onAddTag()}
+              className="shrink-0 rounded-xl bg-[#FFDE00] px-4 py-3 text-xs font-black text-black hover:bg-[#ffe84d] cursor-pointer"
             >
               Adicionar
             </button>

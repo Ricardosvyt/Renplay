@@ -6,7 +6,7 @@ interface Step4LanguagesProps {
   setLanguages: (languages: string[]) => void;
   languageInput: string;
   setLanguageInput: (val: string) => void;
-  onAddLanguage: () => void;
+  onAddLanguage: (textToAdd?: string) => void;
   translationStatus: string;
   translatedBy: string;
   translationNotes: string;

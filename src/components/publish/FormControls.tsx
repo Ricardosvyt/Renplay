@@ -90,7 +90,7 @@ export function ChipEditor({
   setValues: (values: string[]) => void;
   input: string;
   setInput: (value: string) => void;
-  add: () => void;
+  add: (textToAdd?: string) => void;
   placeholder: string;
 }) {
   return (
@@ -102,7 +102,7 @@ export function ChipEditor({
             key={item}
             type="button"
             onClick={() => setValues(values.filter((current) => current !== item))}
-            className="rounded-lg border border-[#FFDE00]/30 bg-[#FFDE00]/10 px-3 py-2 text-xs font-bold text-[#FFDE00]"
+            className="rounded-lg border border-[#FFDE00]/30 bg-[#FFDE00]/10 px-3 py-2 text-xs font-bold text-[#FFDE00] cursor-pointer"
           >
             {item} ×
           </button>
@@ -111,15 +111,27 @@ export function ChipEditor({
       <div className="mt-3 flex gap-2">
         <input
           value={value}
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => event.key === "Enter" && (event.preventDefault(), add())}
+          onChange={(event) => {
+            const val = event.target.value;
+            if (val.includes(",") || val.includes(";")) {
+              add(val);
+            } else {
+              setInput(val);
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === ",") {
+              event.preventDefault();
+              add();
+            }
+          }}
           className={inputClass.replace("mt-2 ", "flex-1 ")}
           placeholder={placeholder}
         />
         <button
           type="button"
-          onClick={add}
-          className="mt-2 rounded-xl border border-[#29292F] px-4 text-xs font-black text-white hover:border-[#FFDE00]"
+          onClick={() => add()}
+          className="mt-2 rounded-xl border border-[#29292F] px-4 text-xs font-black text-white hover:border-[#FFDE00] cursor-pointer"
         >
           Adicionar
         </button>
