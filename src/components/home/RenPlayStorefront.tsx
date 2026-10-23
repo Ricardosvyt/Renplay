@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Game, LauncherInfo } from "@/types/game";
 import storefrontData from "@/lib/storefront-data";
+import { formatImageUrl } from "@/lib/image-url";
 import styles from "./RenPlayStorefront.module.css";
 
 const { getPopularGames, getRecentGames, formatCompactCount, storefrontCategories } = storefrontData;
@@ -49,10 +50,24 @@ function Icon({ name, className = "" }: { name: string; className?: string }) {
 function SpriteArt({ index, label, cover }: { index: number; label: string; cover?: string }) {
   const x = `${(index % 4) * (100 / 3)}%`;
   const y = index < 4 ? "0%" : "100%";
-  return <div className={styles.art} style={{ backgroundImage: `url(${artSheet})`, backgroundPosition: `${x} ${y}` }}>
-    {cover && <Image src={cover} alt={label} fill sizes="(max-width: 720px) 45vw, 260px" unoptimized />}
-    <span className={styles.artShade} />
-  </div>;
+  const coverUrl = cover ? formatImageUrl(cover, "") : "";
+  return (
+    <div className={styles.art} style={{ backgroundImage: `url(${artSheet})`, backgroundPosition: `${x} ${y}` }}>
+      {coverUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={coverUrl}
+          alt={label}
+          loading="lazy"
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.currentTarget as HTMLElement).style.display = "none";
+          }}
+        />
+      ) : null}
+      <span className={styles.artShade} />
+    </div>
+  );
 }
 
 export function RenPlayStorefront(props: Props) {
@@ -94,7 +109,7 @@ export function RenPlayStorefront(props: Props) {
       <section className={styles.installed} aria-label="Jogos na sua biblioteca">
         <div className={styles.installedTitle}><span>NA SUA BIBLIOTECA</span><b>{libraryIds.length}</b></div>
         {libraryGames.length ? libraryGames.map((game, index) => <button className={styles.installedGame} key={game.id} onClick={() => onOpenGame(game)}>
-          <span className={styles.installedThumb}><SpriteArt index={index} label="" cover={game.coverImage} /></span>
+          <span className={styles.installedThumb}><SpriteArt index={index} label="" cover={game.coverImage || (game as { mainCover?: string }).mainCover || (game as { horizontalBanner?: string }).horizontalBanner} /></span>
           <span><strong>{game.name}</strong><small><i />Na biblioteca</small></span>
         </button>) : <p className={styles.installedEmpty}>Adicione histórias à sua biblioteca para vê-las aqui.</p>}
       </section>
@@ -125,7 +140,7 @@ export function RenPlayStorefront(props: Props) {
             </div>
             <div className={styles.popularRail} ref={popularRef}>
               {loadingGames ? <p className={styles.empty}>Carregando o catálogo…</p> : popularGames.length ? popularGames.map((game, index) => <button className={styles.popularCard} key={game.id} onClick={() => onOpenGame(game)}>
-                <SpriteArt index={index} label={game.name} cover={game.coverImage || game.screenshots?.[0]} />
+                <SpriteArt index={index} label={game.name} cover={game.coverImage || (game as { mainCover?: string }).mainCover || (game as { horizontalBanner?: string }).horizontalBanner || game.screenshots?.[0]} />
                 <span className={styles.popularBadge}>{index === 0 ? "Mais baixado" : index === 1 ? "Em alta" : index === 2 && game.publishedAt ? "Novo" : game.genre || "Visual Novel"}</span>
                 <span className={styles.gameOverlay}>
                   <strong>{game.name}</strong><small>{game.genre || game.category || "Visual Novel"}</small>
@@ -152,7 +167,7 @@ export function RenPlayStorefront(props: Props) {
             </div>
             <div className={styles.recentRail} ref={newRef}>
               {recentGames.length ? recentGames.map((game, index) => <button className={styles.recentCard} key={game.id} onClick={() => onOpenGame(game)}>
-                <SpriteArt index={(index + 4) % 8} label={game.name} cover={game.coverImage || game.screenshots?.[0]} />
+                <SpriteArt index={(index + 4) % 8} label={game.name} cover={game.coverImage || (game as { mainCover?: string }).mainCover || (game as { horizontalBanner?: string }).horizontalBanner || game.screenshots?.[0]} />
                 <span className={styles.newBadge}>Novo</span><span className={styles.recentOverlay}><strong>{game.name}</strong><small>{game.genre || game.category || "Visual Novel"}</small><span className={styles.gameStats}>{typeof game.rating === "number" && <span><Icon name="star" />{game.rating.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</span>}{typeof game.downloads === "number" && <span><Icon name="download" />{formatCompactCount(game.downloads)}</span>}</span></span>
               </button>) : <p className={styles.empty}>{loadingGames ? "Carregando lançamentos…" : "Ainda não há lançamentos no catálogo."}</p>}
             </div>

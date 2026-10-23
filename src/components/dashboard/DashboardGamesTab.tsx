@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { GameItem } from "./types";
+import { formatImageUrl } from "@/lib/image-url";
 
 interface DashboardGamesTabProps {
   games: GameItem[];
@@ -281,9 +282,12 @@ export function DashboardGamesTab({
                       <td className="p-4 flex items-center gap-3">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={game.coverUrl}
+                          src={formatImageUrl(game.coverUrl)}
                           alt={game.title}
                           className="w-10 h-12 object-cover rounded-md shadow-sm shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.src = "/images/so-much-to-love-cover.jpg";
+                          }}
                         />
                         <div>
                           <div className="font-bold text-white leading-snug">{game.title}</div>

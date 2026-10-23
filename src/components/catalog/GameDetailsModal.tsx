@@ -1,5 +1,6 @@
 import React from "react";
 import { Game } from "@/types/game";
+import { formatImageUrl } from "@/lib/image-url";
 
 interface GameDetailsModalProps {
   game: Game | null;
@@ -47,9 +48,12 @@ export function GameDetailsModal({
           <div className="relative aspect-[16/9] bg-black overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={game.screenshots[activeImageIndex] || game.coverImage}
+              src={formatImageUrl(game.screenshots[activeImageIndex] || game.coverImage || (game as { mainCover?: string }).mainCover)}
               alt={game.name}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "/images/so-much-to-love-cover.jpg";
+              }}
             />
 
             {/* Controles de Próximo / Anterior */}

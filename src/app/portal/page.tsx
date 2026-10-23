@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { formatImageUrl } from "@/lib/image-url";
 
 interface UserProfile {
   displayName: string;
@@ -310,9 +311,12 @@ export default function PortalPage() {
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={game.coverImage}
+                          src={formatImageUrl(game.coverImage)}
                           alt={game.name}
                           className="w-24 h-32 object-cover rounded-lg shadow-md shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.src = "/images/so-much-to-love-cover.jpg";
+                          }}
                         />
                         <div className="flex flex-col justify-between flex-1 min-w-0">
                           <div>

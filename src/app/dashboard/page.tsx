@@ -62,7 +62,7 @@ export default function DashboardPage() {
       .then((data) => {
         if (!Array.isArray(data.games)) return;
         setGames(
-          data.games.map((game: { id: string; name: string; developer?: string; category?: string; genre?: string; version?: string; coverImage?: string; downloadUrl?: string; status?: string; updated_at?: string; created_at?: string }) => ({
+          data.games.map((game: { id: string; name: string; developer?: string; category?: string; genre?: string; version?: string; coverImage?: string; mainCover?: string; horizontalBanner?: string; downloadUrl?: string; status?: string; updated_at?: string; created_at?: string }) => ({
             id: game.id,
             title: game.name,
             developer: game.developer || "Desenvolvedor não informado",
@@ -71,7 +71,7 @@ export default function DashboardPage() {
             version: game.version || "1.0.0",
             engine: "Ren'Py",
             adult: false,
-            coverUrl: game.coverImage || "/images/so-much-to-love-cover.jpg",
+            coverUrl: game.coverImage || game.mainCover || game.horizontalBanner || "/images/so-much-to-love-cover.jpg",
             downloadUrl: game.downloadUrl || "",
             downloads: 0,
             status: game.status === "PUBLISHED" ? "PUBLISHED" : game.status === "PENDING_REVIEW" ? "PENDING_REVIEW" : "DRAFT",

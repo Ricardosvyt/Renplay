@@ -2,6 +2,7 @@ import React from "react";
 import { Icon } from "../ui/Icon";
 import { panelClass } from "./FormControls";
 import { Status } from "./types";
+import { formatImageUrl } from "@/lib/image-url";
 
 interface PublishLivePreviewProps {
   name: string;
@@ -42,8 +43,8 @@ export function PublishLivePreview({
   mainCover,
   screenshots
 }: PublishLivePreviewProps) {
-  const fallbackCover = "/game-cover-default.jpg";
-  const displayAvatar = gameIcon || mainCover || fallbackCover;
+  const fallbackCover = "/images/so-much-to-love-cover.jpg";
+  const displayAvatar = formatImageUrl(gameIcon || mainCover || fallbackCover);
 
   const classificationColor =
     classification === "Livre" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" :
@@ -72,9 +73,12 @@ export function PublishLivePreview({
           <div className="relative aspect-video bg-zinc-950">
             {horizontalBanner ? (
               <img
-                src={horizontalBanner}
+                src={formatImageUrl(horizontalBanner)}
                 alt="Banner Preview"
                 className="h-full w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/images/so-much-to-love-01.jpg";
+                }}
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-900 to-zinc-950 p-4 text-center text-xs text-zinc-600">

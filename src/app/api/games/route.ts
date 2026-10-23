@@ -69,6 +69,8 @@ export async function GET(request: NextRequest) {
               created_at: row.created_at,
               updated_at: row.updated_at,
               ...meta,
+              coverImage: meta.coverImage || meta.mainCover || meta.horizontalBanner || "/images/so-much-to-love-cover.jpg",
+              mainCover: meta.mainCover || meta.coverImage || "/images/so-much-to-love-cover.jpg",
               slug: meta.slug || slugify(row.name),
               engine: meta.engine || "Ren'Py",
               classification: meta.classification || "18",

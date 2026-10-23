@@ -1,5 +1,6 @@
 import React from "react";
 import { Game } from "@/types/game";
+import { formatImageUrl } from "@/lib/image-url";
 
 interface GameCardProps {
   game: Game;
@@ -20,10 +21,13 @@ export function GameCard({ game, isDark, onOpenModal }: GameCardProps) {
       <div className="relative aspect-[16/10] overflow-hidden bg-zinc-900">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={game.coverImage || game.screenshots?.[0] || "/images/so-much-to-love-cover.jpg"}
+          src={formatImageUrl(game.coverImage || (game as { mainCover?: string }).mainCover || game.screenshots?.[0])}
           alt={game.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
+          onError={(e) => {
+            e.currentTarget.src = "/images/so-much-to-love-cover.jpg";
+          }}
         />
         {game.adult && (
           <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded text-[10px] font-black bg-red-600 text-white shadow-md">
