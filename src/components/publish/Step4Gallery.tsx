@@ -8,12 +8,10 @@ interface Step2MediaProps {
   horizontalBanner: string;
   mainCover: string;
   trailerUrl: string;
-  githubUrl: string;
   screenshots: string;
   bannerMode: ImageInputMode;
   profileMode: ImageInputMode;
   coverMode: ImageInputMode;
-  isGithubValid: boolean;
   onSetBannerMode: (mode: ImageInputMode) => void;
   onSetProfileMode: (mode: ImageInputMode) => void;
   onSetCoverMode: (mode: ImageInputMode) => void;
@@ -26,12 +24,10 @@ export function Step4Gallery({
   horizontalBanner,
   mainCover,
   trailerUrl,
-  githubUrl,
   screenshots,
   bannerMode,
   profileMode,
   coverMode,
-  isGithubValid,
   onSetBannerMode,
   onSetProfileMode,
   onSetCoverMode,
@@ -242,43 +238,23 @@ export function Step4Gallery({
           />
         </div>
 
-        {/* TRAILER EM VÍDEO E GITHUB */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="game-trailer" className="text-sm font-black text-white">
-                Trailer em Vídeo
-              </label>
-              <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-zinc-400">Opcional</span>
-            </div>
-            <p className="mt-1 text-xs text-zinc-400">Link do YouTube, Vimeo ou vídeo MP4.</p>
-            <input
-              id="game-trailer"
-              type="url"
-              value={trailerUrl || ""}
-              onChange={(e) => onUpdate("trailerUrl", e.target.value)}
-              className={`${inputClass} mt-3 text-sm`}
-              placeholder="https://www.youtube.com/watch?v=..."
-            />
+        {/* TRAILER EM VÍDEO */}
+        <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="game-trailer" className="text-sm font-black text-white">
+              Trailer em Vídeo
+            </label>
+            <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-zinc-400">Opcional</span>
           </div>
-
-          <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="game-github" className="text-sm font-black text-white">
-                Repositório GitHub
-              </label>
-              <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold text-zinc-400">Opcional</span>
-            </div>
-            <p className="mt-1 text-xs text-zinc-400">Repositório aberto para código ou patches.</p>
-            <input
-              id="game-github"
-              type="url"
-              value={githubUrl || ""}
-              onChange={(e) => onUpdate("githubUrl", e.target.value)}
-              className={`${inputClass} mt-3 text-sm ${isGithubValid ? "border-emerald-500/50" : ""}`}
-              placeholder="https://github.com/usuario/jogo-visualnovel"
-            />
-          </div>
+          <p className="mt-1 text-xs text-zinc-400">Link do YouTube, Vimeo ou vídeo MP4.</p>
+          <input
+            id="game-trailer"
+            type="url"
+            value={trailerUrl || ""}
+            onChange={(e) => onUpdate("trailerUrl", e.target.value)}
+            className={`${inputClass} mt-3 text-sm`}
+            placeholder="https://www.youtube.com/watch?v=..."
+          />
         </div>
       </div>
     </section>

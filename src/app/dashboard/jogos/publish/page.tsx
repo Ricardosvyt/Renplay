@@ -139,10 +139,6 @@ export default function PublishGamePage() {
     setLanguageInput("");
   };
 
-  const isGithubValid = useMemo(() => {
-    if (!form.githubUrl) return false;
-    return /^https?:\/\/(www\.)?github\.com\/[\w-]+\/[\w.-]+\/?$/i.test(form.githubUrl.trim());
-  }, [form.githubUrl]);
 
   const screenshots = useMemo(
     () =>
@@ -359,12 +355,10 @@ export default function PublishGamePage() {
                     horizontalBanner={form.horizontalBanner}
                     mainCover={form.mainCover}
                     trailerUrl={form.trailerUrl}
-                    githubUrl={form.githubUrl}
                     screenshots={form.screenshots}
                     bannerMode={bannerMode}
                     profileMode={profileMode}
                     coverMode={coverMode}
-                    isGithubValid={isGithubValid}
                     onSetBannerMode={setBannerMode}
                     onSetProfileMode={setProfileMode}
                     onSetCoverMode={setCoverMode}
@@ -508,7 +502,6 @@ export default function PublishGamePage() {
                 horizontalBanner={form.horizontalBanner}
                 gameIcon={form.gameIcon}
                 mainCover={form.mainCover}
-                githubUrl={form.githubUrl}
                 screenshots={screenshots}
               />
             </form>

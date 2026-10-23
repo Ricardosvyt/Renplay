@@ -21,7 +21,6 @@ interface PublishLivePreviewProps {
   horizontalBanner: string;
   gameIcon: string;
   mainCover: string;
-  githubUrl: string;
   screenshots: string[];
 }
 
@@ -43,7 +42,6 @@ export function PublishLivePreview({
   horizontalBanner,
   gameIcon,
   mainCover,
-  githubUrl,
   screenshots
 }: PublishLivePreviewProps) {
   const fallbackCover = "/game-cover-default.jpg";
@@ -134,21 +132,6 @@ export function PublishLivePreview({
               </div>
             )}
 
-            {/* Badge GitHub no Preview */}
-            {githubUrl && (
-              <a
-                href={githubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between rounded-lg border border-[#29292F] bg-[#12141D] px-3 py-1.5 text-[11px] font-bold text-zinc-300 transition hover:border-[#FFDE00]/40 hover:text-white"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Icon name="github" className="h-3.5 w-3.5" />
-                  GitHub oficial
-                </span>
-                <Icon name="external" className="h-3 w-3 text-zinc-500" />
-              </a>
-            )}
 
             <p className="line-clamp-3 text-xs leading-relaxed text-zinc-400">
               {shortDescription || "A descrição curta do seu jogo aparecerá aqui nos cards da vitrine."}
