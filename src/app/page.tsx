@@ -205,13 +205,18 @@ export default function Home() {
     }
   };
 
-  // Carregar dados de Jogos e Launcher da API Next.js
+  // Sincronização da biblioteca pessoal do usuário autenticado
+  const [userLibraryIds, setUserLibraryIds] = useState<string[]>([]);
+  const [libraryActionLoading, setLibraryActionLoading] = useState(false);
+
+  // Carregar dados de Jogos, Launcher e Biblioteca da API Next.js
   useEffect(() => {
     async function loadData() {
       try {
-        const [gamesRes, launcherRes] = await Promise.all([
+        const [gamesRes, launcherRes, libRes] = await Promise.all([
           fetch("/api/games"),
           fetch("/api/launcher"),
+          fetch("/api/v1/library").catch(() => null),
         ]);
         if (gamesRes.ok) {
           const data = await gamesRes.json();
@@ -221,6 +226,12 @@ export default function Home() {
           const lData = await launcherRes.json();
           setLauncherInfo(lData);
         }
+        if (libRes && libRes.ok) {
+          const libData = await libRes.json();
+          if (Array.isArray(libData.games)) {
+            setUserLibraryIds(libData.games.map((g: { id: string }) => g.id));
+          }
+        }
       } catch (err) {
         console.warn("Erro ao carregar dados do catálogo:", err);
       } finally {
@@ -229,6 +240,37 @@ export default function Home() {
     }
     loadData();
   }, []);
+
+  const handleToggleLibrary = async (gameId: string) => {
+    setLibraryActionLoading(true);
+    const isInLibrary = userLibraryIds.includes(gameId);
+    try {
+      const res = await fetch("/api/v1/library", {
+        method: isInLibrary ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId }),
+      });
+
+      if (res.status === 401) {
+        alert("Entre na sua conta para adicionar ou gerenciar jogos na sua biblioteca.");
+        window.location.href = "/login";
+        return;
+      }
+
+      if (res.ok) {
+        setUserLibraryIds((prev) =>
+          isInLibrary ? prev.filter((id) => id !== gameId) : [...prev, gameId]
+        );
+      } else {
+        const data = await res.json().catch(() => null);
+        alert(data?.error?.message || "Não foi possível atualizar sua biblioteca.");
+      }
+    } catch {
+      alert("Falha de conexão com os servidores RenPlay.");
+    } finally {
+      setLibraryActionLoading(false);
+    }
+  };
 
   // Atalho de Teclado '/' para focar na busca
   useEffect(() => {
@@ -861,17 +903,42 @@ export default function Home() {
                   <h2 className="text-2xl sm:text-3xl font-black mt-1">{selectedGame.name}</h2>
                 </div>
 
-                {selectedGame.downloadUrl && (
-                  <a
-                    href={selectedGame.downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-3 px-6 rounded-xl font-black text-xs uppercase tracking-wide bg-[#FFDE00] hover:bg-[#ffe84d] text-black shadow-lg flex items-center justify-center gap-2"
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => handleToggleLibrary(selectedGame.id)}
+                    disabled={libraryActionLoading}
+                    className={`py-3 px-5 rounded-xl font-black text-xs uppercase tracking-wide transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      userLibraryIds.includes(selectedGame.id)
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/30"
+                        : "bg-[#FFDE00] hover:bg-[#ffe84d] text-black shadow-lg"
+                    }`}
                   >
-                    <DownloadIcon className="w-4 h-4" />
-                    <span>Baixar Jogo ({selectedGame.sizeLabel || "Direto"})</span>
+                    <span>
+                      {userLibraryIds.includes(selectedGame.id)
+                        ? "✓ Na sua biblioteca (Remover)"
+                        : "+ Adicionar à Minha Biblioteca"}
+                    </span>
+                  </button>
+
+                  <a
+                    href={`renplay://launch/${selectedGame.id}`}
+                    className="py-3 px-5 rounded-xl font-bold text-xs uppercase tracking-wide bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 transition-colors flex items-center gap-2"
+                  >
+                    <span>▶ Abrir no Launcher</span>
                   </a>
-                )}
+
+                  {selectedGame.downloadUrl && (
+                    <a
+                      href={selectedGame.downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-3 px-5 rounded-xl font-bold text-xs uppercase tracking-wide bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <DownloadIcon className="w-4 h-4" />
+                      <span>Baixar Jogo</span>
+                    </a>
+                  )}
+                </div>
               </div>
 
               {/* Informações Rápidas */}

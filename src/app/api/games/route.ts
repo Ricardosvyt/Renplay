@@ -139,3 +139,63 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Falha ao salvar o jogo no banco." }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Autenticação necessária." }, { status: 401 });
+    if (!user.roles.some((role) => ["ADMIN", "DEVELOPER", "MODERATOR"].includes(role))) {
+      return NextResponse.json({ error: "Permissão insuficiente para alterar jogos." }, { status: 403 });
+    }
+
+    const body = (await request.json().catch(() => ({}))) as {
+      id?: string;
+      status?: "PUBLISHED" | "DRAFT" | "SUSPENDED" | "ARCHIVED";
+      featured?: boolean;
+      metadata?: Record<string, unknown>;
+    };
+
+    const id = body.id || request.nextUrl.searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "Identificador do jogo não fornecido." }, { status: 400 });
+    }
+
+    // Busca o jogo atual
+    const current = await getDb().query<{ id: string; status: string; metadata: Record<string, unknown> }>(
+      "SELECT id, status, metadata FROM rp_games WHERE id = $1 LIMIT 1",
+      [id]
+    );
+
+    if (current.rowCount === 0) {
+      return NextResponse.json({ error: "Jogo não encontrado." }, { status: 404 });
+    }
+
+    const game = current.rows[0];
+    const newStatus = body.status || game.status;
+    const isPublished = newStatus === "PUBLISHED";
+    const mergedMetadata = {
+      ...game.metadata,
+      ...(body.metadata || {}),
+      ...(body.featured !== undefined ? { featured: body.featured } : {})
+    };
+
+    const updated = await getDb().query(
+      `UPDATE rp_games
+          SET status = $1,
+              metadata = $2,
+              distribution_authorized = $3,
+              updated_at = now()
+        WHERE id = $4
+    RETURNING id, name, status, metadata, created_at, updated_at`,
+      [newStatus, mergedMetadata, isPublished, id]
+    );
+
+    return NextResponse.json({
+      success: true,
+      game: updated.rows[0]
+    });
+  } catch (error) {
+    console.error("Erro ao atualizar jogo:", error);
+    return NextResponse.json({ error: "Falha ao atualizar o jogo." }, { status: 500 });
+  }
+}

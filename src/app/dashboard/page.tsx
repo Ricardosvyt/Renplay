@@ -19,7 +19,7 @@ export interface GameItem {
   coverUrl: string;
   downloadUrl: string;
   downloads: number;
-  status: "PUBLISHED" | "PENDING_REVIEW" | "DRAFT";
+  status: "PUBLISHED" | "PENDING_REVIEW" | "DRAFT" | "SUSPENDED" | "ARCHIVED";
   lastUpdate: string;
 }
 
@@ -278,6 +278,8 @@ export default function DashboardPage() {
       .catch((err) => console.error("Erro ao sincronizar jogos:", err));
   }, []);
 
+    const [statusFilter, setStatusFilter] = useState<"ALL" | "PUBLISHED" | "DRAFT" | "SUSPENDED" | "ARCHIVED">("ALL");
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
@@ -295,11 +297,32 @@ export default function DashboardPage() {
     showToast("Jogo removido com sucesso.");
   };
 
+  const handleUpdateStatus = async (id: string, newStatus: "PUBLISHED" | "DRAFT" | "SUSPENDED" | "ARCHIVED") => {
+    try {
+      const res = await fetch("/api/games", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+      if (!res.ok) {
+        showToast("Falha ao atualizar status do jogo.");
+        return;
+      }
+      setGames((prev) =>
+        prev.map((g) => (g.id === id ? { ...g, status: newStatus } : g))
+      );
+      showToast(`Status atualizado para ${newStatus === "PUBLISHED" ? "Publicado" : newStatus === "DRAFT" ? "Rascunho" : newStatus}.`);
+    } catch {
+      showToast("Erro ao conectar ao servidor.");
+    }
+  };
+
   const filteredGames = games.filter(
     (g) =>
-      g.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      g.developer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      g.genre.toLowerCase().includes(searchQuery.toLowerCase())
+      (statusFilter === "ALL" || g.status === statusFilter) &&
+      (g.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        g.developer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        g.genre.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
@@ -546,6 +569,31 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* FILTROS POR STATUS */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {[
+                  { id: "ALL", label: "Todos", count: games.length },
+                  { id: "PUBLISHED", label: "Publicados", count: games.filter((g) => g.status === "PUBLISHED").length },
+                  { id: "DRAFT", label: "Rascunhos", count: games.filter((g) => g.status === "DRAFT").length },
+                  { id: "ARCHIVED", label: "Arquivados", count: games.filter((g) => g.status === "ARCHIVED" || g.status === "SUSPENDED").length },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setStatusFilter(f.id as typeof statusFilter)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                      statusFilter === f.id
+                        ? "bg-[#FFDE00] text-black shadow-md font-black"
+                        : "bg-[#12141D] text-zinc-400 hover:text-white border border-[#29292F]"
+                    }`}
+                  >
+                    <span>{f.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${statusFilter === f.id ? "bg-black/20 text-black" : "bg-zinc-800 text-zinc-400"}`}>
+                      {f.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
               {/* TABELA DE JOGOS LIMPA */}
               <div className="rounded-2xl border border-[#29292F] bg-[#12141D] overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
@@ -567,10 +615,10 @@ export default function DashboardPage() {
                             <div className="flex flex-col items-center justify-center gap-2.5">
                               <GamepadIcon className="w-9 h-9 text-zinc-700 stroke-1" />
                               <p className="text-sm font-bold text-zinc-400">
-                                {searchQuery ? "Nenhum jogo encontrado com esse termo." : "Nenhum jogo cadastrado"}
+                                {searchQuery ? "Nenhum jogo encontrado com esse termo." : "Nenhum jogo nesta categoria"}
                               </p>
                               <p className="text-xs text-zinc-600">
-                                {searchQuery ? "Tente buscar por outro nome ou gênero." : "O catálogo está vazio no momento."}
+                                {searchQuery ? "Tente buscar por outro nome ou gênero." : "Altere o filtro acima ou cadastre um novo título."}
                               </p>
                             </div>
                           </td>
@@ -594,20 +642,44 @@ export default function DashboardPage() {
                             <td className="p-4 text-zinc-300">{game.engine}</td>
                             <td className="p-4 text-amber-400 font-bold">{game.downloads.toLocaleString()}</td>
                             <td className="p-4">
-                              <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                {game.status}
+                              <span
+                                className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase border ${
+                                  game.status === "PUBLISHED"
+                                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                    : game.status === "DRAFT"
+                                    ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                                    : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                                }`}
+                              >
+                                {game.status === "PUBLISHED" ? "Publicado" : game.status === "DRAFT" ? "Rascunho" : game.status}
                               </span>
                             </td>
                             <td className="p-4 text-right space-x-2">
-                              {game.downloadUrl && (
-                                <a
-                                  href={game.downloadUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors inline-block"
+                              {game.status === "PUBLISHED" ? (
+                                <button
+                                  onClick={() => handleUpdateStatus(game.id, "DRAFT")}
+                                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                                  title="Tornar jogo privado/rascunho"
                                 >
-                                  Baixar
-                                </a>
+                                  Despublicar
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleUpdateStatus(game.id, "PUBLISHED")}
+                                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                                  title="Publicar jogo no catálogo"
+                                >
+                                  Publicar
+                                </button>
+                              )}
+                              {game.status !== "ARCHIVED" && (
+                                <button
+                                  onClick={() => handleUpdateStatus(game.id, "ARCHIVED")}
+                                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-zinc-400 hover:bg-zinc-700/30 transition-colors cursor-pointer"
+                                  title="Arquivar jogo"
+                                >
+                                  Arquivar
+                                </button>
                               )}
                               <button
                                 onClick={() => handleDeleteGame(game.id, game.title)}

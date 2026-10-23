@@ -4,14 +4,37 @@ import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4 | 5 | 6;
 type Status = "DRAFT" | "PUBLISHED";
 type ImageInputMode = "url" | "upload";
 
 const input = "mt-2 w-full rounded-xl border border-[#29292F] bg-[#090A0F] px-4 py-3 text-sm text-white outline-none transition focus:border-[#FFDE00] focus:ring-2 focus:ring-[#FFDE00]/10";
 const panel = "rounded-3xl border border-[#29292F] bg-[#12141D] p-5 shadow-xl sm:p-7";
 
-function Icon({ name, className = "h-4 w-4" }: { name: "info" | "globe" | "image" | "download" | "shield" | "check" | "arrow" | "save" | "rocket" | "github" | "upload" | "link" | "trash" | "external"; className?: string }) {
+function Icon({
+  name,
+  className = "h-4 w-4"
+}: {
+  name:
+    | "info"
+    | "globe"
+    | "image"
+    | "download"
+    | "shield"
+    | "check"
+    | "arrow"
+    | "save"
+    | "rocket"
+    | "github"
+    | "upload"
+    | "link"
+    | "trash"
+    | "external"
+    | "book"
+    | "sparkles"
+    | "check-circle";
+  className?: string;
+}) {
   const paths = {
     info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></>,
     globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" /></>,
@@ -26,18 +49,41 @@ function Icon({ name, className = "h-4 w-4" }: { name: "info" | "globe" | "image
     upload: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></>,
     link: <><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></>,
     trash: <><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></>,
-    external: <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></>
+    external: <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></>,
+    book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></>,
+    sparkles: <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z" />,
+    "check-circle": <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></>
   };
-  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths[name]}
+    </svg>
+  );
 }
 
-const steps: { id: Step; title: string; description: string; icon: Parameters<typeof Icon>[0]["name"] }[] = [
-  { id: 1, title: "Identidade & Info", description: "Nome, banner, perfil e GitHub", icon: "info" },
-  { id: 2, title: "Idiomas", description: "Traduções e localização", icon: "globe" },
-  { id: 3, title: "Galeria & Capa", description: "Pôster vertical e screenshots", icon: "image" },
-  { id: 4, title: "Arquivos", description: "Download e plataformas", icon: "download" },
-  { id: 5, title: "Publicação", description: "Status e revisão", icon: "shield" },
+const steps: {
+  id: Step;
+  title: string;
+  category: string;
+  description: string;
+  icon: Parameters<typeof Icon>[0]["name"];
+}[] = [
+  { id: 1, title: "Identidade", category: "Visual & GitHub", description: "Nome, banner, perfil e repo", icon: "sparkles" },
+  { id: 2, title: "Informações", category: "Sobre & Sinopse", description: "História, estúdio e gênero", icon: "book" },
+  { id: 3, title: "Idiomas", category: "Localização & Tags", description: "Idiomas e palavras-chave", icon: "globe" },
+  { id: 4, title: "Galeria", category: "Capa & Mídia", description: "Pôster e screenshots", icon: "image" },
+  { id: 5, title: "Arquivos", category: "Download & Sistemas", description: "Links e plataformas", icon: "download" },
+  { id: 6, title: "Lançamento", category: "Revisão & Status", description: "Checklist e publicação", icon: "shield" }
 ];
+
 const platformOptions = ["Windows", "Android", "Linux", "macOS", "Web Browser"];
 
 export default function PublishGamePage() {
@@ -52,6 +98,7 @@ export default function PublishGamePage() {
   // Modos de entrada de imagem (URL ou Upload local)
   const [bannerMode, setBannerMode] = useState<ImageInputMode>("url");
   const [profileMode, setProfileMode] = useState<ImageInputMode>("url");
+  const [coverMode, setCoverMode] = useState<ImageInputMode>("url");
 
   const [form, setForm] = useState({
     name: "",
@@ -88,11 +135,17 @@ export default function PublishGamePage() {
   const [platforms, setPlatforms] = useState<string[]>(["Windows"]);
 
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
-  const screenshots = useMemo(() => form.screenshots.split("\n").map((value) => value.trim()).filter(Boolean), [form.screenshots]);
+  const screenshots = useMemo(
+    () => form.screenshots.split("\n").map((value) => value.trim()).filter(Boolean),
+    [form.screenshots]
+  );
   const cover = form.mainCover || form.gameIcon || "/images/so-much-to-love-cover.jpg";
 
   // Leitura de arquivo local (Upload com conversão para base64)
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>, field: "horizontalBanner" | "gameIcon" | "mainCover") => {
+  const handleFileUpload = (
+    e: ChangeEvent<HTMLInputElement>,
+    field: "horizontalBanner" | "gameIcon" | "mainCover"
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -129,9 +182,30 @@ export default function PublishGamePage() {
   };
 
   const togglePlatform = (platform: string) =>
-    setPlatforms((current) => (current.includes(platform) ? current.filter((item) => item !== platform) : [...current, platform]));
+    setPlatforms((current) =>
+      current.includes(platform) ? current.filter((item) => item !== platform) : [...current, platform]
+    );
 
-  const isGithubValid = form.githubUrl.trim().length > 0 && /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/.test(form.githubUrl.trim());
+  const isGithubValid =
+    form.githubUrl.trim().length > 0 &&
+    /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+/.test(form.githubUrl.trim());
+
+  // Checklist de prontidão para a etapa 6
+  const readiness = useMemo(() => {
+    return [
+      { label: "Nome do jogo", ready: Boolean(form.name.trim()), detail: form.name.trim() || "Pendente" },
+      { label: "Banner horizontal", ready: Boolean(form.horizontalBanner.trim()), detail: form.horizontalBanner ? "Carregado" : "Recomendado" },
+      { label: "Perfil / Ícone", ready: Boolean(form.gameIcon.trim()), detail: form.gameIcon ? "Carregado" : "Recomendado" },
+      { label: "Desenvolvedor", ready: Boolean(form.developer.trim()), detail: form.developer.trim() || "Pendente" },
+      { label: "Descrição curta", ready: Boolean(form.shortDescription.trim()), detail: form.shortDescription ? "Preenchida" : "Pendente" },
+      { label: "Link de download", ready: Boolean(form.downloadUrl.trim()), detail: form.downloadUrl ? "Configurado" : "Pendente" },
+      { label: "Plataformas", ready: platforms.length > 0, detail: platforms.join(", ") || "Nenhuma selecionada" },
+      { label: "GitHub oficial", ready: Boolean(form.githubUrl.trim()), detail: form.githubUrl ? "Vinculado" : "Opcional" }
+    ];
+  }, [form, platforms]);
+
+  const completedCount = readiness.filter((r) => r.ready).length;
+  const progressPercent = Math.round((completedCount / readiness.length) * 100);
 
   const save = async (event?: FormEvent) => {
     event?.preventDefault();
@@ -191,12 +265,12 @@ export default function PublishGamePage() {
     window.setTimeout(() => router.push("/dashboard/jogos"), 700);
   };
 
-  const next = () => setStep((current) => Math.min(5, current + 1) as Step);
+  const next = () => setStep((current) => Math.min(6, current + 1) as Step);
   const previous = () => setStep((current) => Math.max(1, current - 1) as Step);
 
   return (
     <div className="min-h-screen bg-[#090A0F] font-sans text-[#F5F5F5]">
-      {/* Header */}
+      {/* Header Superior */}
       <header className="sticky top-0 z-40 border-b border-[#29292F] bg-[#090A0F]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1500px] items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-3">
@@ -205,51 +279,73 @@ export default function PublishGamePage() {
               Painel de Controle
             </span>
           </Link>
-          <Link href="/dashboard/jogos" className="text-xs font-bold text-zinc-400 transition hover:text-[#FFDE00]">
-            Voltar ao catálogo
-          </Link>
+          <div className="flex items-center gap-4">
+            <div className="hidden items-center gap-2 sm:flex">
+              <span className="text-xs text-zinc-400">Progresso geral:</span>
+              <div className="h-2 w-28 overflow-hidden rounded-full bg-zinc-800">
+                <div
+                  className="h-full bg-gradient-to-r from-[#FFDE00] to-emerald-400 transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <span className="text-xs font-bold text-white">{progressPercent}%</span>
+            </div>
+            <Link href="/dashboard/jogos" className="text-xs font-bold text-zinc-400 transition hover:text-[#FFDE00]">
+              Voltar ao catálogo
+            </Link>
+          </div>
         </div>
       </header>
 
       <div className="mx-auto flex max-w-[1500px] flex-col md:flex-row">
-        {/* Sidebar */}
+        {/* Barra Lateral de Navegação */}
         <aside className="w-full shrink-0 border-b border-[#29292F] bg-[#0D0E14]/70 p-4 md:min-h-[calc(100vh-4rem)] md:w-64 md:border-b-0 md:border-r md:p-5">
           <p className="px-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">Navegação</p>
           <nav className="mt-2 space-y-1">
             <SideLink href="/dashboard">01&nbsp;&nbsp; Visão geral</SideLink>
             <SideLink href="/dashboard/jogos">02&nbsp;&nbsp; Catálogo de jogos</SideLink>
-            <Link href="/dashboard/jogos/publish" className="block min-h-11 rounded-xl bg-[#FFDE00] px-3.5 py-3 text-xs font-black text-black">
+            <Link
+              href="/dashboard/jogos/publish"
+              className="block min-h-11 rounded-xl bg-[#FFDE00] px-3.5 py-3 text-xs font-black text-black"
+            >
               03&nbsp;&nbsp; Publicar jogo
             </Link>
             <SideLink href="/dashboard/usuarios">04&nbsp;&nbsp; Equipe e acessos</SideLink>
           </nav>
+
           <div className="mt-8 hidden rounded-2xl border border-[#29292F] bg-[#12141D] p-4 md:block">
-            <p className="text-xs font-black text-white">Identidade Visual</p>
+            <p className="text-xs font-black text-white">Passo a Passo</p>
             <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
-              O <strong className="text-white">Nome</strong>, o <strong className="text-[#FFDE00]">Banner</strong> e o <strong className="text-[#FFDE00]">Perfil do Game</strong> formam a primeira impressão da sua visual novel tanto no site quanto no Launcher.
+              O formulário agora é dividido em 6 categorias lógicas para uma experiência de publicação clara, organizada e completa.
             </p>
           </div>
         </aside>
 
-        {/* Conteúdo Principal */}
+        {/* Área Central */}
         <main className="min-w-0 flex-1 px-4 py-8 sm:px-8 sm:py-10">
           <div className="mx-auto max-w-6xl">
-            {/* Título da Página */}
-            <div className="mb-8 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+            {/* Cabeçalho da Página */}
+            <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">Editor de catálogo</p>
-                <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Publicar jogo</h1>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">
+                  Editor de catálogo &bull; Passo a Passo por Categorias
+                </p>
+                <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
+                  {steps[step - 1].category}: {steps[step - 1].title}
+                </h1>
                 <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-                  Cadastre o título oficial, banner panorâmico, imagem de perfil, código no GitHub e configure a experiência na vitrine.
+                  {steps[step - 1].description}. Siga as etapas abaixo para cadastrar e publicar sua obra com qualidade máxima.
                 </p>
               </div>
-              <div className="rounded-xl border border-[#29292F] bg-[#12141D] px-4 py-3 text-xs text-zinc-400">
-                <span className="font-black text-white">Etapa {step}</span> de 5
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-[#29292F] bg-[#12141D] px-4 py-2.5 text-xs text-zinc-400">
+                  <span className="font-black text-[#FFDE00]">Categoria {step}</span> de 6
+                </div>
               </div>
             </div>
 
-            {/* Stepper */}
-            <div className="mb-6 grid grid-cols-2 gap-2 lg:grid-cols-5">
+            {/* Stepper das 6 Categorias */}
+            <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
               {steps.map((item) => (
                 <button
                   key={item.id}
@@ -257,47 +353,54 @@ export default function PublishGamePage() {
                   onClick={() => setStep(item.id)}
                   className={`group rounded-2xl border p-3 text-left transition ${
                     step === item.id
-                      ? "border-[#FFDE00]/60 bg-[#FFDE00]/10"
+                      ? "border-[#FFDE00] bg-[#FFDE00]/10 shadow-[0_0_20px_rgba(255,222,0,0.12)]"
                       : item.id < step
-                      ? "border-emerald-500/30 bg-emerald-500/5"
+                      ? "border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50"
                       : "border-[#29292F] bg-[#12141D] hover:border-zinc-600"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between">
                     <Icon
                       name={item.icon}
-                      className={`h-4 w-4 ${step === item.id ? "text-[#FFDE00]" : item.id < step ? "text-emerald-400" : "text-zinc-500"}`}
+                      className={`h-4 w-4 ${
+                        step === item.id
+                          ? "text-[#FFDE00]"
+                          : item.id < step
+                          ? "text-emerald-400"
+                          : "text-zinc-500"
+                      }`}
                     />
                     {item.id < step && <Icon name="check" className="h-3.5 w-3.5 text-emerald-400" />}
+                    <span className="text-[10px] font-black text-zinc-500">0{item.id}</span>
                   </div>
                   <p className="mt-2 text-xs font-black text-white">{item.title}</p>
-                  <p className="mt-0.5 hidden text-[10px] text-zinc-500 sm:block">{item.description}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-zinc-500">{item.category}</p>
                 </button>
               ))}
             </div>
 
-            {/* Formulário */}
+            {/* Formulário Principal */}
             <form onSubmit={save} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="space-y-6">
-                {/* ETAPA 1: IDENTIDADE & DADOS ESSENCIAIS */}
+                {/* CATEGORIA 1: IDENTIDADE VISUAL & GITHUB */}
                 {step === 1 && (
                   <section className={panel}>
                     <SectionTitle
-                      title="1. Identidade e Informações Principais"
-                      description="Defina os elementos visuais de topo e os dados fundamentais para a vitrine oficial do RenPlay."
+                      title="Categoria 1: Identidade Visual & GitHub"
+                      description="Esta é a marca principal da sua Visual Novel. O Nome, o Banner e o Perfil são os primeiros elementos vistos pelos jogadores."
                     />
 
                     <div className="space-y-6">
-                      {/* CAMPO 1: NOME DO JOGO */}
+                      {/* CAMPO: NOME DO JOGO */}
                       <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
                         <div className="flex items-center justify-between">
                           <label htmlFor="game-name" className="text-sm font-black text-white">
                             Nome do jogo <span className="text-[#FFDE00]">*</span>
                           </label>
-                          <span className="text-[11px] font-bold text-zinc-500">Obrigatório</span>
+                          <span className="rounded bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-400">Obrigatório</span>
                         </div>
                         <p className="mt-1 text-xs text-zinc-400">
-                          O título oficial da Visual Novel exibido na vitrine da web, buscas e na biblioteca do Launcher.
+                          Título oficial que aparecerá nos destaques da vitrine, no cabeçalho e na busca do Launcher.
                         </p>
                         <input
                           id="game-name"
@@ -310,7 +413,7 @@ export default function PublishGamePage() {
                         />
                       </div>
 
-                      {/* CAMPO 2: BANNER HORIZONTAL DO JOGO */}
+                      {/* CAMPO: BANNER HORIZONTAL */}
                       <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
                         <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                           <div>
@@ -343,14 +446,13 @@ export default function PublishGamePage() {
                         {/* Explicação detalhada */}
                         <div className="mt-2 rounded-xl bg-[#141620] p-3 text-xs text-zinc-400">
                           <p className="leading-relaxed">
-                            <strong className="text-white">Onde aparece:</strong> É a imagem panorâmica de destaque exibida no topo da página de detalhes do jogo no site e no grande carrossel animado da tela inicial do RenPlay Launcher.
+                            <strong className="text-white">Onde é exibido:</strong> É a imagem panorâmica principal no topo da página do jogo no site e no grande carrossel animado da tela inicial do RenPlay Launcher.
                           </p>
                           <p className="mt-1 text-[11px] text-zinc-500">
-                            💡 <strong className="text-zinc-300">Resolução recomendada:</strong> 1920 × 1080 px ou proporção 16:9 widescreen (PNG, WEBP ou JPG de alta definição).
+                            💡 <strong className="text-zinc-300">Resolução recomendada:</strong> 1920 × 1080 px ou 16:9 widescreen (PNG, WEBP ou JPG de alta definição).
                           </p>
                         </div>
 
-                        {/* Campo de URL ou Upload */}
                         {bannerMode === "url" ? (
                           <div className="mt-3">
                             <input
@@ -377,7 +479,7 @@ export default function PublishGamePage() {
                           </div>
                         )}
 
-                        {/* Mini preview do banner */}
+                        {/* Preview do banner */}
                         {form.horizontalBanner && (
                           <div className="relative mt-3 overflow-hidden rounded-xl border border-[#29292F] bg-black">
                             <div className="aspect-[16/7] w-full">
@@ -401,7 +503,7 @@ export default function PublishGamePage() {
                         )}
                       </div>
 
-                      {/* CAMPO 3: PERFIL DO GAME (ÍCONE / AVATAR) */}
+                      {/* CAMPO: PERFIL DO GAME */}
                       <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
                         <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                           <div>
@@ -434,14 +536,13 @@ export default function PublishGamePage() {
                         {/* Explicação detalhada */}
                         <div className="mt-2 rounded-xl bg-[#141620] p-3 text-xs text-zinc-400">
                           <p className="leading-relaxed">
-                            <strong className="text-white">Onde aparece:</strong> É a foto de perfil/identidade do jogo. Ela aparece na lista rápida da barra lateral do Launcher, nas notificações, nos resultados de busca e como selo de apresentação.
+                            <strong className="text-white">Onde é exibido:</strong> É a foto de perfil/identidade do jogo. Ela aparece na lista rápida da barra lateral do Launcher, nas notificações, nos resultados de busca e como selo de apresentação.
                           </p>
                           <p className="mt-1 text-[11px] text-zinc-500">
                             💡 <strong className="text-zinc-300">Resolução recomendada:</strong> 512 × 512 px formato 1:1 quadrado (PNG com transparência ou WEBP/JPG).
                           </p>
                         </div>
 
-                        {/* Campo de URL ou Upload */}
                         {profileMode === "url" ? (
                           <div className="mt-3">
                             <input
@@ -468,7 +569,7 @@ export default function PublishGamePage() {
                           </div>
                         )}
 
-                        {/* Mini preview do perfil */}
+                        {/* Preview do perfil */}
                         {form.gameIcon && (
                           <div className="mt-3 flex items-center gap-4 rounded-xl border border-[#29292F] bg-black p-3">
                             <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 border-[#FFDE00]/80 bg-[#12141D]">
@@ -493,7 +594,7 @@ export default function PublishGamePage() {
                         )}
                       </div>
 
-                      {/* CAMPO 4: REPOSITÓRIO GITHUB */}
+                      {/* CAMPO: REPOSITÓRIO GITHUB */}
                       <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
                         <div className="flex items-center justify-between">
                           <label htmlFor="game-github" className="flex items-center gap-2 text-sm font-black text-white">
@@ -539,9 +640,20 @@ export default function PublishGamePage() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  </section>
+                )}
 
-                      {/* DEMAIS DADOS BÁSICOS */}
-                      <div className="grid gap-5 pt-2 sm:grid-cols-2">
+                {/* CATEGORIA 2: SOBRE O JOGO & SINOPSE */}
+                {step === 2 && (
+                  <section className={panel}>
+                    <SectionTitle
+                      title="Categoria 2: Informações & Sinopse"
+                      description="Apresente quem criou o jogo, em qual gênero ele se encaixa e a história que vai encantar os jogadores."
+                    />
+
+                    <div className="space-y-6">
+                      <div className="grid gap-5 sm:grid-cols-2">
                         <Field
                           label="Desenvolvedor(a) ou Estúdio *"
                           required
@@ -556,13 +668,14 @@ export default function PublishGamePage() {
                           placeholder="Opcional (se diferente do desenvolvedor)"
                         />
                         <Field
-                          label="Gênero Principal"
+                          label="Gênero Principal *"
+                          required
                           value={form.genre}
                           onChange={(e) => update("genre", e.target.value)}
-                          placeholder="Visual Novel, Romance, Mistério, Slice of Life..."
+                          placeholder="Visual Novel, Romance, Mistério, Ficção..."
                         />
                         <Field
-                          label="Categoria / Temática"
+                          label="Categoria / Subgênero"
                           value={form.category}
                           onChange={(e) => update("category", e.target.value)}
                           placeholder="Ex.: Sobrenatural / Drama / Fantasia"
@@ -585,12 +698,12 @@ export default function PublishGamePage() {
                           rows={3}
                           value={form.shortDescription}
                           onChange={(e) => update("shortDescription", e.target.value)}
-                          placeholder="Breve resumo (1 a 3 frases) exibido nos cards do catálogo e na busca."
+                          placeholder="Breve resumo (1 a 3 frases) exibido nos cards do catálogo, buscas e carrossel."
                           wide
                         />
                         <TextArea
-                          label="Descrição Completa / Sinopse"
-                          rows={6}
+                          label="Descrição Completa / Sinopse Detalhada"
+                          rows={7}
                           value={form.fullDescription}
                           onChange={(e) => update("fullDescription", e.target.value)}
                           placeholder="Conte a história, os personagens, as rotas disponíveis e os diferenciais da sua obra."
@@ -601,12 +714,12 @@ export default function PublishGamePage() {
                   </section>
                 )}
 
-                {/* ETAPA 2: IDIOMAS E TAGS */}
-                {step === 2 && (
+                {/* CATEGORIA 3: IDIOMAS & TAGS */}
+                {step === 3 && (
                   <section className={panel}>
                     <SectionTitle
-                      title="2. Idiomas e Localização"
-                      description="Informe o que já está traduzido e as tags para orientar os jogadores."
+                      title="Categoria 3: Idiomas e Localização"
+                      description="Informe em quais línguas a visual novel pode ser lida e adicione tags temáticas para ajudar na descoberta."
                     />
                     <div className="space-y-6">
                       <ChipEditor
@@ -637,35 +750,84 @@ export default function PublishGamePage() {
                   </section>
                 )}
 
-                {/* ETAPA 3: GALERIA E CAPA VERTICAL */}
-                {step === 3 && (
+                {/* CATEGORIA 4: GALERIA DE FOTOS & CAPA PÔSTER */}
+                {step === 4 && (
                   <section className={panel}>
                     <SectionTitle
-                      title="3. Galeria e Capa Pôster"
-                      description="Configure a capa vertical padrão de pôster e screenshots para a galeria de fotos."
+                      title="Categoria 4: Galeria de Fotos e Capa Pôster"
+                      description="Configure o pôster vertical de cinema para a grade de jogos e inclua capturas de tela das cenas."
                     />
-                    <div className="grid gap-5">
+                    <div className="space-y-6">
                       {/* Lembrete dos elementos já configurados na etapa 1 */}
                       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs text-zinc-300">
                         <div className="flex items-center gap-2 font-black text-emerald-400">
                           <Icon name="check" className="h-4 w-4" />
-                          Banner e Perfil configurados na Etapa 1
+                          Banner e Perfil configurados na Categoria 1
                         </div>
                         <p className="mt-1 text-[11px] text-zinc-400">
-                          O Banner da vitrine e o Perfil do game já foram definidos. Aqui você pode adicionar o pôster vertical de cinema e as capturas de tela.
+                          O Banner da vitrine e a foto de Perfil já foram definidos. Aqui você define a capa pôster vertical clássica e as capturas da galeria.
                         </p>
                       </div>
 
-                      <Field
-                        label="Capa Principal (Pôster Vertical 3:4 ou 2:3)"
-                        type="url"
-                        value={form.mainCover}
-                        onChange={(e) => update("mainCover", e.target.value)}
-                        placeholder="https://.../capa-vertical.jpg"
-                        wide
-                      />
+                      {/* Capa Pôster com Upload ou URL */}
+                      <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+                        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                          <div>
+                            <span className="text-sm font-black text-white">Capa Principal (Pôster Vertical 3:4)</span>
+                            <span className="ml-2 rounded bg-white/10 px-2 py-0.5 text-[10px] font-bold text-zinc-300">Vitrine Clássica</span>
+                          </div>
+                          <div className="flex rounded-lg border border-[#29292F] bg-[#090A0F] p-0.5 text-[11px] font-bold">
+                            <button
+                              type="button"
+                              onClick={() => setCoverMode("url")}
+                              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
+                                coverMode === "url" ? "bg-[#FFDE00] text-black" : "text-zinc-400 hover:text-white"
+                              }`}
+                            >
+                              <Icon name="link" className="h-3 w-3" /> Link / URL
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCoverMode("upload")}
+                              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
+                                coverMode === "upload" ? "bg-[#FFDE00] text-black" : "text-zinc-400 hover:text-white"
+                              }`}
+                            >
+                              <Icon name="upload" className="h-3 w-3" /> Enviar Imagem
+                            </button>
+                          </div>
+                        </div>
+
+                        {coverMode === "url" ? (
+                          <div className="mt-3">
+                            <input
+                              type="url"
+                              value={form.mainCover}
+                              onChange={(e) => update("mainCover", e.target.value)}
+                              className={input}
+                              placeholder="https://.../capa-vertical.jpg"
+                            />
+                          </div>
+                        ) : (
+                          <div className="mt-3">
+                            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#343744] bg-[#090A0F] p-5 text-center transition hover:border-[#FFDE00]/60">
+                              <Icon name="upload" className="h-6 w-6 text-[#FFDE00]" />
+                              <span className="mt-2 text-xs font-bold text-white">Clique para escolher a Capa Pôster</span>
+                              <span className="mt-1 text-[11px] text-zinc-500">Proporção 3:4 vertical até 5 MB</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileUpload(e, "mainCover")}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Screenshots */}
                       <TextArea
-                        label="Screenshots (uma URL por linha)"
+                        label="Screenshots da Galeria (uma URL por linha)"
                         rows={6}
                         value={form.screenshots}
                         onChange={(e) => update("screenshots", e.target.value)}
@@ -676,12 +838,12 @@ export default function PublishGamePage() {
                   </section>
                 )}
 
-                {/* ETAPA 4: ARQUIVOS E PLATAFORMAS */}
-                {step === 4 && (
+                {/* CATEGORIA 5: ARQUIVOS & DOWNLOAD */}
+                {step === 5 && (
                   <section className={panel}>
                     <SectionTitle
-                      title="4. Arquivos e Plataformas"
-                      description="Configure os links de download e os sistemas operacionais suportados."
+                      title="Categoria 5: Arquivos & Download"
+                      description="Configure os links de download e os sistemas operacionais suportados para os jogadores baixarem a visual novel."
                     />
                     <div className="grid gap-5 sm:grid-cols-2">
                       <Field
@@ -733,14 +895,45 @@ export default function PublishGamePage() {
                   </section>
                 )}
 
-                {/* ETAPA 5: PUBLICAÇÃO E REVISÃO */}
-                {step === 5 && (
+                {/* CATEGORIA 6: LANÇAMENTO & REVISÃO */}
+                {step === 6 && (
                   <section className={panel}>
                     <SectionTitle
-                      title="5. Publicação e Revisão"
-                      description="Escolha o status de lançamento da sua visual novel para a comunidade."
+                      title="Categoria 6: Publicação & Revisão Final"
+                      description="Confira o checklist de prontidão, defina o status do jogo e finalize a publicação."
                     />
                     <div className="space-y-6">
+                      {/* Checklist de Prontidão */}
+                      <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
+                        <div className="flex items-center justify-between border-b border-[#29292F] pb-3">
+                          <span className="text-sm font-black text-white">Checklist de Prontidão</span>
+                          <span className="text-xs font-bold text-[#FFDE00]">
+                            {completedCount} de {readiness.length} completos ({progressPercent}%)
+                          </span>
+                        </div>
+                        <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                          {readiness.map((item) => (
+                            <div
+                              key={item.label}
+                              className={`flex items-center justify-between rounded-xl border p-2.5 text-xs ${
+                                item.ready
+                                  ? "border-emerald-500/20 bg-emerald-500/5 text-zinc-300"
+                                  : "border-zinc-800 bg-zinc-950/50 text-zinc-500"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={item.ready ? "text-emerald-400" : "text-zinc-600"}>
+                                  {item.ready ? "✓" : "○"}
+                                </span>
+                                <span className={item.ready ? "font-bold text-white" : ""}>{item.label}</span>
+                              </div>
+                              <span className="truncate text-[10px] text-zinc-400">{item.detail}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Status de Publicação */}
                       <div>
                         <p className="text-xs font-bold text-zinc-400">Status de publicação</p>
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -758,18 +951,22 @@ export default function PublishGamePage() {
                           />
                         </div>
                       </div>
-                      <Field
-                        label="Responsável pelo desenvolvimento"
-                        value={form.responsibleDev}
-                        onChange={(e) => update("responsibleDev", e.target.value)}
-                        placeholder="Nome do responsável"
-                      />
-                      <Field
-                        label="Responsável pela tradução"
-                        value={form.responsibleTranslator}
-                        onChange={(e) => update("responsibleTranslator", e.target.value)}
-                        placeholder="Nome do tradutor"
-                      />
+
+                      <div className="grid gap-5 sm:grid-cols-2">
+                        <Field
+                          label="Responsável pelo desenvolvimento"
+                          value={form.responsibleDev}
+                          onChange={(e) => update("responsibleDev", e.target.value)}
+                          placeholder="Nome do responsável"
+                        />
+                        <Field
+                          label="Responsável pela tradução"
+                          value={form.responsibleTranslator}
+                          onChange={(e) => update("responsibleTranslator", e.target.value)}
+                          placeholder="Nome do tradutor"
+                        />
+                      </div>
+
                       <label className="block text-xs font-bold text-zinc-400">
                         Permissões de edição
                         <select
@@ -782,12 +979,14 @@ export default function PublishGamePage() {
                           <option value="all_team">Toda a equipe</option>
                         </select>
                       </label>
+
                       <Field
                         label="Data de publicação agendada"
                         type="datetime-local"
                         value={form.scheduledPublishDate}
                         onChange={(e) => update("scheduledPublishDate", e.target.value)}
                       />
+
                       <TextArea
                         label="Changelog da versão"
                         rows={5}
@@ -811,7 +1010,7 @@ export default function PublishGamePage() {
                   </p>
                 )}
 
-                {/* Botões de Navegação */}
+                {/* Botões de Navegação Inferiores */}
                 <div className="flex flex-col-reverse justify-between gap-3 border-t border-[#29292F] pt-5 sm:flex-row">
                   <div>
                     {step > 1 && (
@@ -836,13 +1035,13 @@ export default function PublishGamePage() {
                     >
                       <Icon name="save" /> Salvar rascunho
                     </button>
-                    {step < 5 ? (
+                    {step < 6 ? (
                       <button
                         type="button"
                         onClick={next}
                         className="inline-flex items-center gap-2 rounded-xl bg-[#FFDE00] px-6 py-3 text-xs font-black text-black hover:bg-[#ffe84d]"
                       >
-                        Próxima etapa <Icon name="arrow" />
+                        Próxima categoria: {steps[step].title} <Icon name="arrow" />
                       </button>
                     ) : (
                       <button

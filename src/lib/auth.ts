@@ -146,6 +146,14 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   return getUserBySessionToken(token);
 }
 
+export async function getSessionUser(request?: Request): Promise<AuthUser | null> {
+  if (request) {
+    const bearer = await getBearerUser(request).catch(() => null);
+    if (bearer) return bearer;
+  }
+  return await getCurrentUser().catch(() => null);
+}
+
 export async function revokeCurrentSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;

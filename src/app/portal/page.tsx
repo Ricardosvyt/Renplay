@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface UserProfile {
@@ -29,25 +29,62 @@ export default function PortalPage() {
     }
     return true;
   });
-  const [user] = useState<UserProfile>({
+
+  const [user, setUser] = useState<UserProfile>({
     displayName: "Comandante RenPlay",
     username: "player_one",
     email: "player@renplay.com.br",
     emailVerified: true,
-    roles: ["PLAYER", "CREATOR"],
+    roles: ["PLAYER"],
     mfaEnabled: false,
   });
 
-  const [library, setLibrary] = useState<LibraryGame[]>([
-    {
-      id: "so-much-to-love",
-      name: "So Much to Love",
-      version: "0.4.4B",
-      developer: "ALDOR",
-      favorite: true,
-      coverImage: "/images/so-much-to-love-cover.jpg",
-    },
-  ]);
+  const [library, setLibrary] = useState<LibraryGame[]>([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(true);
+
+  // Carrega usuário autenticado e biblioteca sincronizada
+  useEffect(() => {
+    async function loadPortalData() {
+      try {
+        const meRes = await fetch("/api/v1/auth/me");
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData.user) {
+            setUser({
+              displayName: meData.user.displayName || meData.user.username,
+              username: meData.user.username,
+              email: meData.user.email,
+              emailVerified: meData.user.emailVerified ?? true,
+              roles: meData.user.roles || ["PLAYER"],
+              mfaEnabled: meData.user.mfaEnabled ?? false,
+            });
+          }
+        }
+
+        const libRes = await fetch("/api/v1/library");
+        if (libRes.ok) {
+          const libData = await libRes.json();
+          if (Array.isArray(libData.games)) {
+            setLibrary(
+              libData.games.map((g: { id: string; name: string; version?: string; developer?: string; favorite?: boolean; coverImage?: string; coverUrl?: string }) => ({
+                id: g.id,
+                name: g.name,
+                version: g.version || "1.0",
+                developer: g.developer || "RenPlay Studio",
+                favorite: Boolean(g.favorite),
+                coverImage: g.coverImage || g.coverUrl || "/Rina_open.png",
+              }))
+            );
+          }
+        }
+      } catch (err) {
+        console.warn("[Portal] Erro ao sincronizar dados:", err);
+      } finally {
+        setLoadingLibrary(false);
+      }
+    }
+    loadPortalData();
+  }, []);
 
   const [notifications, setNotifications] = useState([
     {
@@ -70,6 +107,24 @@ export default function PortalPage() {
     setLibrary((prev) =>
       prev.map((item) => (item.id === id ? { ...item, favorite: !item.favorite } : item))
     );
+  };
+
+  const handleRemoveGame = async (gameId: string) => {
+    if (!confirm("Deseja remover este jogo da sua biblioteca pessoal na nuvem?")) return;
+    try {
+      const res = await fetch("/api/v1/library", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId }),
+      });
+      if (res.ok) {
+        setLibrary((prev) => prev.filter((item) => item.id !== gameId));
+      } else {
+        alert("Não foi possível remover o jogo agora.");
+      }
+    } catch {
+      alert("Falha de conexão ao remover o jogo.");
+    }
   };
 
   const markAsRead = (id: string) => {
@@ -224,42 +279,66 @@ export default function PortalPage() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {library.map((game) => (
-                    <div
-                      key={game.id}
-                      className={`p-4 rounded-xl border transition-all flex gap-4 ${
-                        isDark ? "bg-[#0b0e14] border-zinc-800 hover:border-zinc-700" : "bg-zinc-50 border-zinc-200"
-                      }`}
+                {loadingLibrary ? (
+                  <div className="py-16 text-center text-zinc-500 font-bold text-sm">
+                    Carregando sua biblioteca da nuvem...
+                  </div>
+                ) : library.length === 0 ? (
+                  <div className="py-16 text-center space-y-4 max-w-md mx-auto">
+                    <div className="w-14 h-14 mx-auto rounded-2xl bg-zinc-800/80 flex items-center justify-center text-2xl">
+                      🎮
+                    </div>
+                    <h3 className="text-lg font-black text-white">Sua biblioteca está vazia</h3>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      Você ainda não adicionou nenhum jogo à sua conta. Explore o catálogo oficial para adicionar histórias e sincronizá-las diretamente com o seu launcher de PC.
+                    </p>
+                    <Link
+                      href="/"
+                      className="inline-block px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider bg-[#FFDE00] hover:bg-[#ffe53b] text-black shadow-lg shadow-amber-500/10 transition-transform active:scale-95"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={game.coverImage}
-                        alt={game.name}
-                        className="w-24 h-32 object-cover rounded-lg shadow-md shrink-0"
-                      />
-                      <div className="flex flex-col justify-between flex-1">
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-amber-400">{game.developer}</span>
-                          <h4 className="font-bold text-sm leading-snug">{game.name}</h4>
-                          <span className="text-xs text-zinc-400">Versão {game.version}</span>
-                        </div>
-                        <div className="flex items-center gap-2 pt-2">
-                          <button
-                            onClick={() => toggleFavorite(game.id)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
-                              game.favorite
-                                ? "bg-amber-400/20 text-[#FFDE00] border-amber-400/40"
-                                : "text-zinc-400 border-zinc-700 hover:bg-zinc-800"
-                            }`}
-                          >
-                            {game.favorite ? "★ Favorito" : "☆ Favoritar"}
-                          </button>
+                      Explorar Catálogo de Jogos →
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {library.map((game) => (
+                      <div
+                        key={game.id}
+                        className={`p-4 rounded-xl border transition-all flex gap-4 ${
+                          isDark ? "bg-[#0b0e14] border-zinc-800 hover:border-zinc-700" : "bg-zinc-50 border-zinc-200"
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={game.coverImage}
+                          alt={game.name}
+                          className="w-24 h-32 object-cover rounded-lg shadow-md shrink-0"
+                        />
+                        <div className="flex flex-col justify-between flex-1 min-w-0">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-amber-400 block truncate">{game.developer}</span>
+                            <h4 className="font-bold text-sm leading-snug truncate">{game.name}</h4>
+                            <span className="text-xs text-zinc-400 block mt-0.5">Versão {game.version}</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 pt-2">
+                            <a
+                              href={`renplay://launch/${game.id}`}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#FFDE00] text-black hover:bg-[#ffe53b] transition-colors cursor-pointer"
+                            >
+                              ▶ Abrir no Launcher
+                            </a>
+                            <button
+                              onClick={() => handleRemoveGame(game.id)}
+                              className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border border-red-500/20"
+                            >
+                              Remover
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
