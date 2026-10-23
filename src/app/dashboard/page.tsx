@@ -114,6 +114,39 @@ export default function DashboardPage() {
     }
   };
 
+  const handleBatchUpdateStatus = async (ids: string[], newStatus: "PUBLISHED" | "DRAFT" | "SUSPENDED" | "ARCHIVED") => {
+    try {
+      await Promise.all(
+        ids.map((id) =>
+          fetch("/api/games", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, status: newStatus }),
+          })
+        )
+      );
+      setGames((prev) =>
+        prev.map((g) => (ids.includes(g.id) ? { ...g, status: newStatus } : g))
+      );
+      showToast(`${ids.length} jogos atualizados para ${newStatus === "PUBLISHED" ? "Publicados" : newStatus === "DRAFT" ? "Rascunho" : newStatus}.`);
+    } catch {
+      showToast("Erro ao atualizar lote de jogos.");
+    }
+  };
+
+  const handleBatchDelete = async (ids: string[]) => {
+    if (!confirm(`Deseja excluir definitivamente os ${ids.length} jogos selecionados?`)) return;
+    try {
+      await Promise.all(
+        ids.map((id) => fetch(`/api/games?id=${encodeURIComponent(id)}`, { method: "DELETE" }))
+      );
+      setGames((current) => current.filter((g) => !ids.includes(g.id)));
+      showToast(`${ids.length} jogos excluídos com sucesso.`);
+    } catch {
+      showToast("Erro ao excluir lote de jogos.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#090A0F] text-[#F5F5F5] font-sans flex flex-col justify-between">
       {/* Toast Notification */}
@@ -177,6 +210,8 @@ export default function DashboardPage() {
               onStatusFilterChange={setStatusFilter}
               onUpdateStatus={handleUpdateStatus}
               onDeleteGame={handleDeleteGame}
+              onBatchUpdateStatus={handleBatchUpdateStatus}
+              onBatchDelete={handleBatchDelete}
             />
           )}
 

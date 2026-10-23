@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { GameItem } from "./types";
 
@@ -10,6 +10,8 @@ interface DashboardGamesTabProps {
   onStatusFilterChange: (status: string) => void;
   onUpdateStatus: (id: string, newStatus: "PUBLISHED" | "DRAFT" | "SUSPENDED" | "ARCHIVED") => void;
   onDeleteGame: (id: string, title: string) => void;
+  onBatchUpdateStatus?: (ids: string[], newStatus: "PUBLISHED" | "DRAFT" | "SUSPENDED" | "ARCHIVED") => void;
+  onBatchDelete?: (ids: string[]) => void;
 }
 
 export function DashboardGamesTab({
@@ -19,8 +21,12 @@ export function DashboardGamesTab({
   onSearchChange,
   onStatusFilterChange,
   onUpdateStatus,
-  onDeleteGame
+  onDeleteGame,
+  onBatchUpdateStatus,
+  onBatchDelete
 }: DashboardGamesTabProps) {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   const filteredGames = games.filter(
     (g) =>
       (statusFilter === "ALL" || g.status === statusFilter) &&
@@ -29,15 +35,67 @@ export function DashboardGamesTab({
         g.genre.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const isAllSelected =
+    filteredGames.length > 0 && filteredGames.every((g) => selectedIds.includes(g.id));
+  const hasSomeSelected = selectedIds.length > 0;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      // Desmarca todos os filtrados
+      const filteredIds = new Set(filteredGames.map((g) => g.id));
+      setSelectedIds((prev) => prev.filter((id) => !filteredIds.has(id)));
+    } else {
+      // Marca todos os filtrados
+      const newSet = new Set([...selectedIds, ...filteredGames.map((g) => g.id)]);
+      setSelectedIds(Array.from(newSet));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const clearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  const handleBatchStatus = (newStatus: "PUBLISHED" | "DRAFT" | "SUSPENDED" | "ARCHIVED") => {
+    if (!selectedIds.length) return;
+    if (onBatchUpdateStatus) {
+      onBatchUpdateStatus(selectedIds, newStatus);
+    } else {
+      selectedIds.forEach((id) => onUpdateStatus(id, newStatus));
+    }
+    clearSelection();
+  };
+
+  const handleBatchDeleteAction = () => {
+    if (!selectedIds.length) return;
+    if (onBatchDelete) {
+      onBatchDelete(selectedIds);
+    } else {
+      if (confirm(`Deseja excluir os ${selectedIds.length} jogos selecionados?`)) {
+        selectedIds.forEach((id) => {
+          const game = games.find((g) => g.id === id);
+          onDeleteGame(id, game?.title || "Jogo");
+        });
+      }
+    }
+    clearSelection();
+  };
+
   return (
     <div className="space-y-6 animate-fade-in-up">
+      {/* CABEÇALHO */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">
             Catálogo de Jogos
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Gerencie títulos, versões de build e links de download do ecossistema.
+            Gerencie títulos, versões de build, status de publicação e downloads do ecossistema.
           </p>
         </div>
 
@@ -70,29 +128,90 @@ export function DashboardGamesTab({
       </div>
 
       {/* FILTROS POR STATUS */}
-      <div className="flex flex-wrap gap-2 pt-1">
-        {[
-          { id: "ALL", label: "Todos", count: games.length },
-          { id: "PUBLISHED", label: "Publicados", count: games.filter((g) => g.status === "PUBLISHED").length },
-          { id: "DRAFT", label: "Rascunhos", count: games.filter((g) => g.status === "DRAFT").length },
-          { id: "ARCHIVED", label: "Arquivados", count: games.filter((g) => g.status === "ARCHIVED" || g.status === "SUSPENDED").length },
-        ].map((f) => (
-          <button
-            key={f.id}
-            onClick={() => onStatusFilterChange(f.id)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-              statusFilter === f.id
-                ? "bg-[#FFDE00] text-black shadow-md font-black"
-                : "bg-[#12141D] text-zinc-400 hover:text-white border border-[#29292F]"
-            }`}
-          >
-            <span>{f.label}</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${statusFilter === f.id ? "bg-black/20 text-black" : "bg-zinc-800 text-zinc-400"}`}>
-              {f.count}
-            </span>
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: "ALL", label: "Todos", count: games.length },
+            { id: "PUBLISHED", label: "Publicados", count: games.filter((g) => g.status === "PUBLISHED").length },
+            { id: "DRAFT", label: "Rascunhos", count: games.filter((g) => g.status === "DRAFT").length },
+            { id: "ARCHIVED", label: "Arquivados", count: games.filter((g) => g.status === "ARCHIVED" || g.status === "SUSPENDED").length },
+          ].map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => onStatusFilterChange(f.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                statusFilter === f.id
+                  ? "bg-[#FFDE00] text-black shadow-md font-black"
+                  : "bg-[#12141D] text-zinc-400 hover:text-white border border-[#29292F]"
+              }`}
+            >
+              <span>{f.label}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${statusFilter === f.id ? "bg-black/20 text-black" : "bg-zinc-800 text-zinc-400"}`}>
+                {f.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {hasSomeSelected && (
+          <div className="text-xs font-bold text-[#FFDE00]">
+            {selectedIds.length} selecionado{selectedIds.length > 1 ? "s" : ""}
+          </div>
+        )}
       </div>
+
+      {/* BARRA FLUTUANTE DE AÇÕES EM MASSA (MÚLTIPLA SELEÇÃO) */}
+      {hasSomeSelected && (
+        <div className="sticky top-20 z-30 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#FFDE00]/40 bg-[#0E1017]/95 p-3.5 shadow-[0_10px_35px_rgba(0,0,0,0.8)] backdrop-blur-xl animate-fade-in-up">
+          <div className="flex items-center gap-3">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FFDE00] text-xs font-black text-black">
+              {selectedIds.length}
+            </span>
+            <span className="text-xs font-bold text-white">
+              {selectedIds.length === 1 ? "1 jogo selecionado" : `${selectedIds.length} jogos selecionados`}
+            </span>
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="text-[11px] font-semibold text-zinc-400 hover:text-white underline cursor-pointer ml-1"
+            >
+              Desmarcar todos
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleBatchStatus("PUBLISHED")}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/25 transition cursor-pointer"
+            >
+              ✓ Publicar ({selectedIds.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBatchStatus("DRAFT")}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-500/25 transition cursor-pointer"
+            >
+              Tornar rascunho
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBatchStatus("ARCHIVED")}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-1.5 text-xs font-bold text-zinc-300 hover:bg-zinc-700 transition cursor-pointer"
+            >
+              Arquivar
+            </button>
+            <button
+              type="button"
+              onClick={handleBatchDeleteAction}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/40 bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-300 hover:bg-red-500/25 transition cursor-pointer"
+            >
+              Excluir selecionados
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* TABELA DE JOGOS */}
       <div className="rounded-2xl border border-[#29292F] bg-[#12141D] overflow-hidden shadow-xl">
@@ -100,6 +219,15 @@ export function DashboardGamesTab({
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-[#29292F] bg-[#090A0F] text-zinc-400 uppercase text-[10px] font-black tracking-wider">
+                <th className="p-4 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Selecionar todos os jogos"
+                    className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-[#FFDE00] accent-[#FFDE00] focus:ring-0 cursor-pointer"
+                  />
+                </th>
                 <th className="p-4">Jogo</th>
                 <th className="p-4">Versão</th>
                 <th className="p-4">Engine</th>
@@ -111,7 +239,7 @@ export function DashboardGamesTab({
             <tbody className="divide-y divide-zinc-800/60 font-semibold">
               {filteredGames.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center text-zinc-500">
+                  <td colSpan={7} className="py-16 text-center text-zinc-500">
                     <div className="flex flex-col items-center justify-center gap-2.5">
                       <svg className="w-9 h-9 text-zinc-700 stroke-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="6" y1="12" x2="10" y2="12" />
@@ -130,72 +258,95 @@ export function DashboardGamesTab({
                   </td>
                 </tr>
               ) : (
-                filteredGames.map((game) => (
-                  <tr key={game.id} className="hover:bg-zinc-800/30 transition-colors">
-                    <td className="p-4 flex items-center gap-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={game.coverUrl}
-                        alt={game.title}
-                        className="w-10 h-12 object-cover rounded-md shadow-sm shrink-0"
-                      />
-                      <div>
-                        <div className="font-bold text-white leading-snug">{game.title}</div>
-                        <div className="text-[10px] text-zinc-400">{game.developer} · {game.genre}</div>
-                      </div>
-                    </td>
-                    <td className="p-4 font-mono text-zinc-300">v{game.version}</td>
-                    <td className="p-4 text-zinc-300">{game.engine}</td>
-                    <td className="p-4 text-amber-400 font-bold">{game.downloads.toLocaleString()}</td>
-                    <td className="p-4">
-                      <span
-                        className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase border ${
-                          game.status === "PUBLISHED"
-                            ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                            : game.status === "DRAFT"
-                            ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
-                            : "bg-zinc-800 text-zinc-400 border-zinc-700"
-                        }`}
-                      >
-                        {game.status === "PUBLISHED" ? "Publicado" : game.status === "DRAFT" ? "Rascunho" : game.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right space-x-2">
-                      {game.status === "PUBLISHED" ? (
-                        <button
-                          onClick={() => onUpdateStatus(game.id, "DRAFT")}
-                          className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
-                          title="Tornar jogo privado/rascunho"
+                filteredGames.map((game) => {
+                  const isSelected = selectedIds.includes(game.id);
+                  return (
+                    <tr
+                      key={game.id}
+                      className={`transition-colors ${
+                        isSelected
+                          ? "bg-[#FFDE00]/10 hover:bg-[#FFDE00]/15"
+                          : "hover:bg-zinc-800/30"
+                      }`}
+                    >
+                      <td className="p-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(game.id)}
+                          aria-label={`Selecionar ${game.title}`}
+                          className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-[#FFDE00] accent-[#FFDE00] focus:ring-0 cursor-pointer"
+                        />
+                      </td>
+                      <td className="p-4 flex items-center gap-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={game.coverUrl}
+                          alt={game.title}
+                          className="w-10 h-12 object-cover rounded-md shadow-sm shrink-0"
+                        />
+                        <div>
+                          <div className="font-bold text-white leading-snug">{game.title}</div>
+                          <div className="text-[10px] text-zinc-400">{game.developer} · {game.genre}</div>
+                        </div>
+                      </td>
+                      <td className="p-4 font-mono text-zinc-300">v{game.version}</td>
+                      <td className="p-4 text-zinc-300">{game.engine}</td>
+                      <td className="p-4 text-amber-400 font-bold">{game.downloads.toLocaleString()}</td>
+                      <td className="p-4">
+                        <span
+                          className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase border ${
+                            game.status === "PUBLISHED"
+                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                              : game.status === "DRAFT"
+                              ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                          }`}
                         >
-                          Despublicar
-                        </button>
-                      ) : (
+                          {game.status === "PUBLISHED" ? "Publicado" : game.status === "DRAFT" ? "Rascunho" : game.status}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right space-x-2">
+                        {game.status === "PUBLISHED" ? (
+                          <button
+                            type="button"
+                            onClick={() => onUpdateStatus(game.id, "DRAFT")}
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                            title="Tornar jogo privado/rascunho"
+                          >
+                            Despublicar
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onUpdateStatus(game.id, "PUBLISHED")}
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                            title="Publicar jogo no catálogo"
+                          >
+                            Publicar
+                          </button>
+                        )}
+                        {game.status !== "ARCHIVED" && (
+                          <button
+                            type="button"
+                            onClick={() => onUpdateStatus(game.id, "ARCHIVED")}
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-zinc-400 hover:bg-zinc-700/30 transition-colors cursor-pointer"
+                            title="Arquivar jogo"
+                          >
+                            Arquivar
+                          </button>
+                        )}
                         <button
-                          onClick={() => onUpdateStatus(game.id, "PUBLISHED")}
-                          className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
-                          title="Publicar jogo no catálogo"
+                          type="button"
+                          onClick={() => onDeleteGame(game.id, game.title)}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                         >
-                          Publicar
+                          Excluir
                         </button>
-                      )}
-                      {game.status !== "ARCHIVED" && (
-                        <button
-                          onClick={() => onUpdateStatus(game.id, "ARCHIVED")}
-                          className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-zinc-400 hover:bg-zinc-700/30 transition-colors cursor-pointer"
-                          title="Arquivar jogo"
-                        >
-                          Arquivar
-                        </button>
-                      )}
-                      <button
-                        onClick={() => onDeleteGame(game.id, game.title)}
-                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                      >
-                        Excluir
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
