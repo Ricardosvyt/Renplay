@@ -17,10 +17,11 @@ export async function POST(request: Request) {
       game_id?: string;
       slot?: number;
       slot_number?: number;
+      slotNumber?: number;
     };
 
     const gameId = body.gameId || body.game_id;
-    const slot = body.slot ?? body.slot_number;
+    const slot = body.slotNumber ?? body.slot ?? body.slot_number;
 
     if (!gameId || slot === undefined) {
       return NextResponse.json(
@@ -31,9 +32,16 @@ export async function POST(request: Request) {
 
     const downloadInfo = await initCloudSaveDownload(user, gameId, slot);
 
-    return NextResponse.json(downloadInfo, {
-      headers: { "Cache-Control": "no-store" }
-    });
+    return NextResponse.json(
+      {
+        ...downloadInfo,
+        saveName: downloadInfo.filename,
+        sha256Hex: downloadInfo.sha256
+      },
+      {
+        headers: { "Cache-Control": "no-store" }
+      }
+    );
   } catch (error: any) {
     console.error("[CloudSaves API] Erro ao obter URL de download:", error.message);
     const isForbidden = error.message?.includes("RenPlay Premium");

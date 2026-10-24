@@ -58,17 +58,23 @@ export async function DELETE(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as {
       gameId?: string;
+      game_id?: string;
       slot?: number;
+      slotNumber?: number;
+      slot_number?: number;
     };
 
-    if (!body.gameId || !body.slot) {
+    const gameId = body.gameId || body.game_id;
+    const slot = body.slotNumber ?? body.slot ?? body.slot_number;
+
+    if (!gameId || slot === undefined) {
       return NextResponse.json(
         { error: { code: "INVALID_REQUEST", message: "gameId e slot são obrigatórios." } },
         { status: 400 }
       );
     }
 
-    const result = await deleteCloudSaveSlot(user, body.gameId, body.slot);
+    const result = await deleteCloudSaveSlot(user, gameId, slot);
 
     return NextResponse.json(
       { success: true, deleted: result.deleted },

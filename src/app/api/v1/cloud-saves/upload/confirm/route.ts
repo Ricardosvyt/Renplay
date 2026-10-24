@@ -15,12 +15,14 @@ export async function POST(request: Request) {
     const body = (await request.json().catch(() => ({}))) as {
       uploadId?: string;
       upload_id?: string;
+      sessionId?: string;
+      session_id?: string;
       gameVersion?: string;
       game_version?: string;
       metadata?: Record<string, unknown>;
     };
 
-    const uploadId = body.uploadId || body.upload_id;
+    const uploadId = body.uploadId || body.upload_id || body.sessionId || body.session_id;
     if (!uploadId) {
       return NextResponse.json(
         { error: { code: "INVALID_REQUEST", message: "uploadId é obrigatório." } },
@@ -36,7 +38,11 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { success: true, save: saveRecord },
+      {
+        success: true,
+        save: saveRecord,
+        slot: saveRecord
+      },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error: any) {

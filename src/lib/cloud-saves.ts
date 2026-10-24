@@ -169,13 +169,21 @@ export async function initCloudSaveUpload(
       throw new Error(`O arquivo excede o limite máximo permitido de ${Math.round(policy.maxFileBytes / (1024 * 1024))} MB.`);
     }
 
-    // Verify game exists and is valid
-    const gameRes = await client.query<{ id: string; name: string }>(
+    // Verify game exists or register custom game for this user
+    let gameRes = await client.query<{ id: string; name: string }>(
       "SELECT id, name FROM rp_games WHERE id = $1 LIMIT 1",
       [gameId]
     );
     if (!gameRes.rows[0]) {
-      throw new Error("Jogo não encontrado no catálogo.");
+      const customTitle = String(
+        options.metadata?.gameName || options.metadata?.title || options.metadata?.name || gameId
+      ).slice(0, 150);
+      await client.query(
+        `INSERT INTO rp_games (id, name, status, created_by)
+         VALUES ($1, $2, 'DRAFT', $3)
+         ON CONFLICT (id) DO NOTHING`,
+        [gameId, customTitle, user.id]
+      );
     }
 
     // Release any expired pending sessions for this user

@@ -17,20 +17,26 @@ export async function POST(request: Request) {
       gameId?: string;
       slot?: number;
       slot_number?: number;
+      slotNumber?: number;
       filename?: string;
+      saveName?: string;
+      name?: string;
       file_size?: number;
       fileSizeBytes?: number;
+      sizeBytes?: number;
+      size?: number;
       sha256?: string;
+      sha256Hex?: string;
       game_version?: string;
       gameVersion?: string;
       metadata?: Record<string, unknown>;
     };
 
-    const gameId = body.game_id || body.gameId;
-    const slot = body.slot ?? body.slot_number;
-    const filename = body.filename;
-    const size = body.file_size ?? body.fileSizeBytes;
-    const sha256 = body.sha256;
+    const gameId = body.gameId || body.game_id;
+    const slot = body.slotNumber ?? body.slot ?? body.slot_number;
+    const filename = body.saveName || body.filename || body.name;
+    const size = body.sizeBytes ?? body.file_size ?? body.fileSizeBytes ?? body.size;
+    const sha256 = body.sha256Hex || body.sha256;
 
     if (!gameId || slot === undefined || !filename || size === undefined || !sha256) {
       return NextResponse.json(
@@ -55,9 +61,15 @@ export async function POST(request: Request) {
       metadata: body.metadata || {}
     });
 
-    return NextResponse.json(result, {
-      headers: { "Cache-Control": "no-store" }
-    });
+    return NextResponse.json(
+      {
+        ...result,
+        sessionId: result.uploadId
+      },
+      {
+        headers: { "Cache-Control": "no-store" }
+      }
+    );
   } catch (error: any) {
     console.error("[CloudSaves API] Erro ao iniciar upload:", error.message);
     const isForbidden = error.message?.includes("RenPlay Premium");
