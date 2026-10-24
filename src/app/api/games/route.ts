@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
           let list = res.rows.map((row) => {
             const meta = row.metadata || {};
             const avg = row.rating_average !== null && row.rating_average !== undefined ? Number(row.rating_average) : (meta.rating || null);
+            const sizeLabel = (meta.fileSize as string) || (meta.sizeLabel as string) || (meta.size as string) || (meta.tamanho as string) || "";
             return {
               id: row.id,
               name: row.name,
@@ -69,6 +70,10 @@ export async function GET(request: NextRequest) {
               created_at: row.created_at,
               updated_at: row.updated_at,
               ...meta,
+              fileSize: (meta.fileSize as string) || sizeLabel,
+              sizeLabel: sizeLabel,
+              size: sizeLabel,
+              sizeBytes: Number(meta.sizeBytes) || 0,
               coverImage: meta.coverImage || meta.mainCover || meta.horizontalBanner || "/images/so-much-to-love-cover.jpg",
               mainCover: meta.mainCover || meta.coverImage || "/images/so-much-to-love-cover.jpg",
               slug: meta.slug || slugify(row.name),

@@ -26,8 +26,12 @@ function mapLauncherCatalogGame(row) {
     ? null
     : Number(row.rating_average);
 
+  const sizeLabel = metadata.fileSize || metadata.sizeLabel || metadata.size || metadata.tamanho;
+
   return {
     ...metadata,
+    ...(sizeLabel ? { fileSize: metadata.fileSize || sizeLabel, sizeLabel, size: sizeLabel } : {}),
+    ...(metadata.sizeBytes ? { sizeBytes: Number(metadata.sizeBytes) } : {}),
     id: row.id,
     name: row.name,
     ...(row.status ? { status: row.status } : {}),

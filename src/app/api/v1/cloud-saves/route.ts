@@ -1,0 +1,85 @@
+import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/auth";
+import {
+  isUserPremium,
+  listGameCloudSaves,
+  deleteCloudSaveSlot
+} from "@/lib/cloud-saves";
+
+export async function GET(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) {
+    return NextResponse.json(
+      { error: { code: "UNAUTHORIZED", message: "Faça login para acessar os saves na nuvem." } },
+      { status: 401 }
+    );
+  }
+
+  const { searchParams } = new URL(request.url);
+  const gameId = searchParams.get("gameId");
+
+  if (!gameId) {
+    return NextResponse.json(
+      { error: { code: "INVALID_REQUEST", message: "Parâmetro gameId é obrigatório." } },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const isPremium = isUserPremium(user);
+    const data = await listGameCloudSaves(user, gameId);
+
+    return NextResponse.json(
+      {
+        isPremium,
+        saves: data.saves,
+        quota: data.quota
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error: any) {
+    console.error("[CloudSaves API] Erro ao listar saves:", error.message);
+    return NextResponse.json(
+      { error: { code: "SERVER_ERROR", message: error.message || "Não foi possível carregar os saves na nuvem." } },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  const user = await getSessionUser(request);
+  if (!user) {
+    return NextResponse.json(
+      { error: { code: "UNAUTHORIZED", message: "Faça login para excluir saves da nuvem." } },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const body = (await request.json().catch(() => ({}))) as {
+      gameId?: string;
+      slot?: number;
+    };
+
+    if (!body.gameId || !body.slot) {
+      return NextResponse.json(
+        { error: { code: "INVALID_REQUEST", message: "gameId e slot são obrigatórios." } },
+        { status: 400 }
+      );
+    }
+
+    const result = await deleteCloudSaveSlot(user, body.gameId, body.slot);
+
+    return NextResponse.json(
+      { success: true, deleted: result.deleted },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error: any) {
+    console.error("[CloudSaves API] Erro ao excluir save:", error.message);
+    const isForbidden = error.message?.includes("RenPlay Premium");
+    return NextResponse.json(
+      { error: { code: isForbidden ? "FORBIDDEN" : "BAD_REQUEST", message: error.message } },
+      { status: isForbidden ? 403 : 400 }
+    );
+  }
+}

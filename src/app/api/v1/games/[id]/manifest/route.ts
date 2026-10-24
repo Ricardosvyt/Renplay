@@ -53,6 +53,19 @@ export async function GET(
       );
     }
 
+function parseSizeToBytes(val: string): number {
+  if (!val || typeof val !== "string") return 0;
+  const match = val.trim().match(/^([\d.,]+)\s*([a-zA-Z]+)?$/);
+  if (!match) return 0;
+  const num = parseFloat(match[1].replace(",", "."));
+  if (isNaN(num)) return 0;
+  const unit = (match[2] || "MB").toUpperCase();
+  if (unit.startsWith("G")) return Math.round(num * 1024 * 1024 * 1024);
+  if (unit.startsWith("M")) return Math.round(num * 1024 * 1024);
+  if (unit.startsWith("K")) return Math.round(num * 1024);
+  return Math.round(num);
+}
+
     // Se houver manifesto completo pré-configurado
     if (meta.manifest && typeof meta.manifest === "object") {
       const customManifest = meta.manifest as Record<string, unknown>;
@@ -60,12 +73,36 @@ export async function GET(
         schemaVersion: 1,
         gameId: game.id,
         name: game.name,
+        strictSha256: Boolean(meta.strictSha256),
         ...customManifest,
       });
     }
 
+function normalizeDownloadUrl(url: string): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("pixeldrain.com")) {
+      const match = parsed.pathname.match(/^\/u\/([a-zA-Z0-9_-]+)$/);
+      if (match) return `https://pixeldrain.com/api/file/${match[1]}?download`;
+    }
+    if (parsed.hostname.includes("bzzhr.to") || parsed.hostname.includes("buzzheavier.com")) {
+      const match = parsed.pathname.match(/^\/(?:f\/)?([a-zA-Z0-9_-]+)$/);
+      if (match && !parsed.pathname.startsWith("/download/")) {
+        return `https://${parsed.hostname}/download/${match[1]}`;
+      }
+    }
+    if (parsed.hostname.includes("drive.google.com")) {
+      const idMatch = parsed.pathname.match(/\/d\/([a-zA-Z0-9_-]+)/) || parsed.search.match(/id=([a-zA-Z0-9_-]+)/);
+      if (idMatch) return `https://drive.google.com/uc?export=download&id=${idMatch[1]}`;
+    }
+  } catch {}
+  return url;
+}
+
     // Se houver link de download direto nos metadados
-    const downloadUrl = (meta.downloadUrl as string) || (meta.downloadLink as string) || "";
+    const rawDownloadUrl = (meta.downloadUrl as string) || (meta.downloadLink as string) || "";
+    const downloadUrl = normalizeDownloadUrl(rawDownloadUrl);
     if (!downloadUrl) {
       return NextResponse.json(
         {
@@ -79,7 +116,8 @@ export async function GET(
     }
 
     const version = (meta.version as string) || "1.0.0";
-    const sizeBytes = Number(meta.sizeBytes) || 1024 * 1024 * 50; // fallback demonstrativo
+    const parsedBytes = meta.fileSize ? parseSizeToBytes(meta.fileSize as string) : (meta.size ? parseSizeToBytes(meta.size as string) : 0);
+    const sizeBytes = Number(meta.sizeBytes) || parsedBytes || 1024 * 1024 * 50;
     const safeExe = ((meta.executable as string) || `${game.id.replace(/[^a-z0-9]/g, "")}.exe`).replace(/^[/\\]+/, "");
     const sha256 = (meta.sha256 as string) || crypto.createHash("sha256").update(game.id + version).digest("hex");
 
@@ -101,7 +139,9 @@ export async function GET(
       version: version,
       downloadUrl: downloadUrl,
       sizeBytes: sizeBytes,
+      sizeLabel: (meta.fileSize as string) || (meta.sizeLabel as string) || (meta.size as string) || "",
       sha256: sha256,
+      strictSha256: Boolean(meta.strictSha256),
       executable: safeExe.endsWith(".exe") ? safeExe : `${safeExe}.exe`,
       files: files,
     };
