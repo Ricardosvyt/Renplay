@@ -534,6 +534,7 @@ export async function listGameCloudSaves(
     gameId: row.game_id,
     slotNumber: row.slot_number,
     filename: row.original_filename,
+    saveName: row.original_filename,
     sizeBytes: Number(row.file_size),
     sha256: row.sha256,
     version: row.version,
