@@ -312,6 +312,7 @@ export function DashboardGamesTab({
                         </span>
                       </td>
                       <td className="p-4 text-right space-x-2">
+                        <Link href={`/dashboard/jogos/publish?edit=${encodeURIComponent(game.id)}`} className="inline-block rounded-lg px-2.5 py-1 text-[11px] font-bold text-[#FFDE00] transition-colors hover:bg-[#FFDE00]/10">Editar</Link>
                         {game.status === "PUBLISHED" ? (
                           <button
                             type="button"

@@ -39,6 +39,16 @@ export function DashboardSidebar({ activeTab, gamesCount, usersCount }: Dashboar
       )
     },
     {
+      id: "saves" as DashboardTab,
+      label: "Saves Premium",
+      href: "/dashboard/saves",
+      icon: (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 4h14l2 2v14H4z" /><path d="M7 4v6h10V4M8 20v-7h8v7" />
+        </svg>
+      )
+    },
+    {
       id: "users" as DashboardTab,
       label: "Equipe & Acessos",
       href: "/dashboard/usuarios",

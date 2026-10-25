@@ -9,19 +9,22 @@ import { DashboardOverviewTab } from "@/components/dashboard/DashboardOverviewTa
 import { DashboardGamesTab } from "@/components/dashboard/DashboardGamesTab";
 import DashboardUsersTab from "@/components/dashboard/DashboardUsersTab";
 import DashboardSettingsTab from "@/components/dashboard/DashboardSettingsTab";
+import { DashboardSavesTab } from "@/components/dashboard/DashboardSavesTab";
 
 export default function DashboardPage() {
   const pathname = usePathname();
   const routeTab: DashboardTab =
     pathname === "/dashboard/jogos"
       ? "games"
+      : pathname === "/dashboard/saves"
+      ? "saves"
       : pathname === "/dashboard/usuarios"
       ? "users"
       : pathname === "/dashboard/configuracoes"
       ? "settings"
       : "overview";
 
-  const [activeTab] = useState<DashboardTab>(routeTab);
+  const activeTab = routeTab;
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -221,6 +224,8 @@ export default function DashboardPage() {
           {activeTab === "users" && (
             <DashboardUsersTab users={users} />
           )}
+
+          {activeTab === "saves" && <DashboardSavesTab />}
 
           {activeTab === "settings" && (
             <DashboardSettingsTab onSave={showToast} />

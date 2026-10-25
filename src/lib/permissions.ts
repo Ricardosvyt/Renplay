@@ -44,7 +44,7 @@ export function evaluateRouteAccess(
   }
 
   // Admin user management: only ADMIN
-  if (pathname === "/dashboard/usuarios" || pathname.startsWith("/dashboard/usuarios/")) {
+  if (pathname === "/dashboard/usuarios" || pathname.startsWith("/dashboard/usuarios/") || pathname === "/dashboard/saves" || pathname.startsWith("/dashboard/saves/")) {
     if (!canManageUsers(user)) {
       return { allowed: false, redirectUrl: "/dashboard", reason: "FORBIDDEN" };
     }

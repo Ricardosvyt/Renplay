@@ -1,8 +1,8 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { Step, ImageInputMode, Status, SystemRequirements, DownloadMirror } from "@/components/publish/types";
 import { StepNav, stepsList } from "@/components/publish/StepNav";
@@ -16,12 +16,14 @@ import { PublishLivePreview } from "@/components/publish/PublishLivePreview";
 
 const platformOptions = ["Windows", "Linux", "macOS", "Android", "Web Browser"];
 
-export default function PublishGamePage() {
+function PublishGamePageContent() {
   const router = useRouter();
+  const editingId = useSearchParams().get("edit");
   const [step, setStep] = useState<Step>(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [loadingGame, setLoadingGame] = useState(Boolean(editingId));
   const [tagInput, setTagInput] = useState("");
   const [languageInput, setLanguageInput] = useState("");
 
@@ -78,6 +80,33 @@ export default function PublishGamePage() {
   const [platforms, setPlatforms] = useState<string[]>(["Windows"]);
   const [tags, setTags] = useState<string[]>(["Visual Novel", "Romance", "Anime"]);
   const [languages, setLanguages] = useState<string[]>(["Português (Brasil)", "Inglês"]);
+
+  useEffect(() => {
+    if (!editingId) return;
+    fetch(`/api/admin/games/${encodeURIComponent(editingId)}`, { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Não foi possível carregar o jogo.");
+        return data.game as { name: string; status: string; metadata: Record<string, unknown> };
+      })
+      .then((game) => {
+        const meta = game.metadata || {};
+        const saved = meta as Partial<typeof form> & { screenshots?: string[] | string; platforms?: string[]; tags?: string[]; languages?: string[]; versionNotes?: string };
+        setForm((current) => ({
+          ...current, ...saved, name: game.name,
+          status: (["DRAFT", "PUBLISHED", "SUSPENDED"].includes(game.status) ? game.status : "DRAFT") as Status,
+          screenshots: Array.isArray(saved.screenshots) ? saved.screenshots.join("\n") : String(saved.screenshots || ""),
+          releaseNotes: String(saved.releaseNotes || saved.versionNotes || ""),
+          downloadMirrors: Array.isArray(saved.downloadMirrors) ? saved.downloadMirrors : [],
+          systemRequirements: { ...current.systemRequirements, ...(saved.systemRequirements || {}) },
+        }));
+        if (Array.isArray(saved.platforms)) setPlatforms(saved.platforms);
+        if (Array.isArray(saved.tags)) setTags(saved.tags);
+        if (Array.isArray(saved.languages)) setLanguages(saved.languages);
+      })
+      .catch((cause) => setError(cause instanceof Error ? cause.message : "Falha ao carregar jogo."))
+      .finally(() => setLoadingGame(false));
+  }, [editingId]);
 
   const update = (field: string, value: string | number) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -208,6 +237,7 @@ export default function PublishGamePage() {
 
   const save = async (event?: FormEvent) => {
     if (event) event.preventDefault();
+    if (loadingGame) return;
     setSaving(true);
     setError("");
     setNotice("");
@@ -259,8 +289,8 @@ export default function PublishGamePage() {
       tags
     };
 
-    const response = await fetch("/api/games", {
-      method: "POST",
+    const response = await fetch(editingId ? `/api/admin/games/${encodeURIComponent(editingId)}` : "/api/games", {
+      method: editingId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
@@ -273,7 +303,7 @@ export default function PublishGamePage() {
       return;
     }
 
-    setNotice(form.status === "PUBLISHED" ? "Jogo publicado com sucesso no catálogo e no Launcher!" : "Rascunho salvo com sucesso.");
+    setNotice(editingId ? "Alterações salvas sem mudar o ID do jogo." : form.status === "PUBLISHED" ? "Jogo publicado com sucesso no catálogo e no Launcher!" : "Rascunho salvo com sucesso.");
     window.setTimeout(() => router.push("/dashboard/jogos"), 700);
   };
 
@@ -320,7 +350,7 @@ export default function PublishGamePage() {
               href="/dashboard/jogos/publish"
               className="block min-h-11 rounded-xl bg-[#FFDE00] px-3.5 py-3 text-xs font-black text-black"
             >
-              03&nbsp;&nbsp; Cadastrar novo jogo
+              03&nbsp;&nbsp; {editingId ? "Editar jogo" : "Cadastrar novo jogo"}
             </Link>
             <SideLink href="/dashboard/usuarios">04&nbsp;&nbsp; Equipe e acessos</SideLink>
           </nav>
@@ -340,7 +370,7 @@ export default function PublishGamePage() {
             <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">
-                  RenPlay Admin &bull; Cadastro Oficial de Jogos
+                  RenPlay Admin &bull; {editingId ? `Edição do jogo ${editingId}` : "Cadastro Oficial de Jogos"}
                 </p>
                 <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
                   {stepsList[step - 1].category}: {stepsList[step - 1].title}
@@ -463,6 +493,7 @@ export default function PublishGamePage() {
                 )}
 
                 {/* Mensagens de erro e feedback */}
+                {loadingGame && <p role="status" className="rounded-xl border border-[#FFDE00]/30 bg-[#FFDE00]/10 px-4 py-3 text-xs font-bold text-[#FFDE00]">Carregando dados do jogo para edição...</p>}
                 {error && (
                   <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-bold text-red-300">
                     {error}
@@ -494,10 +525,10 @@ export default function PublishGamePage() {
                     <button
                       type="button"
                       onClick={() => save()}
-                      disabled={saving}
+                      disabled={saving || loadingGame}
                       className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-zinc-400 hover:text-white disabled:opacity-50"
                     >
-                      <Icon name="save" /> Salvar rascunho
+                      <Icon name="save" /> {editingId ? "Salvar alterações" : "Salvar rascunho"}
                     </button>
                     {step < 6 ? (
                       <button
@@ -510,11 +541,11 @@ export default function PublishGamePage() {
                     ) : (
                       <button
                         type="submit"
-                        disabled={saving}
+                        disabled={saving || loadingGame}
                         className="inline-flex items-center gap-2 rounded-xl bg-[#FFDE00] px-6 py-3 text-xs font-black text-black hover:bg-[#ffe84d] disabled:opacity-60"
                       >
                         <Icon name="rocket" />
-                        {saving ? "Salvando..." : form.status === "PUBLISHED" ? "Concluir e publicar na loja" : "Salvar rascunho"}
+                        {saving ? "Salvando..." : editingId ? "Salvar alterações" : form.status === "PUBLISHED" ? "Concluir e publicar na loja" : "Salvar rascunho"}
                       </button>
                     )}
                   </div>
@@ -547,6 +578,10 @@ export default function PublishGamePage() {
       </div>
     </div>
   );
+}
+
+export default function PublishGamePage() {
+  return <Suspense fallback={<div className="min-h-screen bg-[#090A0F] p-10 text-sm text-zinc-400">Carregando editor...</div>}><PublishGamePageContent /></Suspense>;
 }
 
 function SideLink({ href, children }: { href: string; children: React.ReactNode }) {
