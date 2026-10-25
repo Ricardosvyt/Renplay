@@ -17,6 +17,9 @@ export async function POST(request: Request) {
       upload_id?: string;
       sessionId?: string;
       session_id?: string;
+      saveName?: string;
+      save_name?: string;
+      filename?: string;
       gameVersion?: string;
       game_version?: string;
       metadata?: Record<string, unknown>;
@@ -33,6 +36,8 @@ export async function POST(request: Request) {
     const saveRecord = await confirmCloudSaveUpload({
       user,
       uploadId,
+      saveName: body.saveName || body.save_name,
+      filename: body.filename,
       gameVersion: body.gameVersion || body.game_version || "",
       metadata: body.metadata || {}
     });

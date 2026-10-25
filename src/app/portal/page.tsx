@@ -55,6 +55,52 @@ export default function PortalPage() {
   const [zipProgress, setZipProgress] = useState("");
   const [loadingLibrary, setLoadingLibrary] = useState(true);
 
+  // Estados do Gateway de Pagamento VIP
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [selectedPlanLevel, setSelectedPlanLevel] = useState<number>(2);
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutSuccess, setCheckoutSuccess] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [copiedPix, setCopiedPix] = useState(false);
+
+  // Rolagem suave para planos quando chamado do launcher com planSelect=true
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("planSelect") === "true" || window.location.hash === "#planos") {
+        setActiveTab("account");
+        setTimeout(() => {
+          document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" });
+        }, 350);
+      }
+    }
+  }, []);
+
+  const handleConfirmPayment = async () => {
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      const res = await fetch("/api/v1/subscription/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vipLevel: selectedPlanLevel,
+          paymentMethod
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || "Falha ao processar pagamento.");
+      setCheckoutSuccess(data.message || "Pagamento confirmado com sucesso!");
+      const subRes = await fetch("/api/v1/subscription", { cache: "no-store" });
+      if (subRes.ok) setSubscription(await subRes.json());
+    } catch (err: unknown) {
+      setCheckoutError(err instanceof Error ? err.message : "Erro ao processar pagamento.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
   // Carrega usuário autenticado e biblioteca sincronizada
   useEffect(() => {
     async function loadPortalData() {
@@ -346,16 +392,81 @@ export default function PortalPage() {
                   </div>
                 )}
                 <div id="planos" className="rounded-2xl border border-[#FFDE00]/25 bg-gradient-to-br from-[#24210e] to-[#0b0e14] p-5 sm:p-6">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">Minha assinatura</p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">Minha assinatura</p>
+                    <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-[11px] text-zinc-300">
+                      Assinante: <strong className="text-[#FFDE00]">@{user.username}</strong> ({user.displayName})
+                    </span>
+                  </div>
                   <h3 className="mt-2 text-2xl font-black">{subscription?.subscription.plan || "RenPlay gratuito"}</h3>
-                  <p className="mt-1 text-xs text-zinc-400">{subscription?.subscription.status === "GRACE_PERIOD" ? `Carência para recuperar saves até ${new Date(subscription.subscription.graceExpiresAt!).toLocaleString("pt-BR")}` : subscription?.subscription.periodEnd ? `Período pago até ${new Date(subscription.subscription.periodEnd).toLocaleString("pt-BR")}` : "Escolha um dos três planos para enviar saves à nuvem."}</p>
+                  <p className="mt-1 text-xs text-zinc-400">{subscription?.subscription.status === "GRACE_PERIOD" ? `Carência para recuperar saves até ${new Date(subscription.subscription.graceExpiresAt!).toLocaleString("pt-BR")}` : subscription?.subscription.periodEnd ? `Período pago até ${new Date(subscription.subscription.periodEnd).toLocaleString("pt-BR")}` : "Escolha um dos três planos para enviar saves à nuvem com sua conta."}</p>
                   {subscription && <div className="mt-5 grid gap-3 sm:grid-cols-3">
                     <div className="rounded-xl bg-black/30 p-3"><span className="text-[10px] text-zinc-400">Nível VIP</span><strong className="block text-lg">{subscription.subscription.vipLevel}</strong></div>
                     <div className="rounded-xl bg-black/30 p-3"><span className="text-[10px] text-zinc-400">Saves na nuvem</span><strong className="block text-lg">{subscription.usage.saves} / {subscription.subscription.maxSaves || "—"}</strong></div>
                     <div className="rounded-xl bg-black/30 p-3"><span className="text-[10px] text-zinc-400">Armazenamento</span><strong className="block text-lg">{(subscription.usage.bytes / 1_000_000).toFixed(1)} / {subscription.subscription.maxBytes ? (subscription.subscription.maxBytes / 1_000_000).toFixed(0) : "—"} MB</strong></div>
                   </div>}
-                  <div className="mt-5 grid gap-3 sm:grid-cols-3">{Object.entries(subscription?.plans || {}).map(([level, plan]) => <div key={level} className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-sm font-black text-[#FFDE00]">{plan.name}</p><p className="mt-1 text-xl font-black">R$ {plan.monthlyPriceBRL.toFixed(2).replace(".", ",")}<span className="text-xs font-normal text-zinc-400">/mês</span></p><p className="mt-2 text-xs text-zinc-400">{plan.maxSaves} saves · {plan.maxBytes / 1_000_000} MB</p></div>)}</div>
-                  <p className="mt-4 text-xs text-zinc-500">A contratação será disponibilizada quando o pagamento estiver integrado. Seus saves locais continuam gratuitos.</p>
+                  <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                    {Object.entries(subscription?.plans || {}).map(([levelStr, plan]) => {
+                      const level = Number(levelStr);
+                      const isCurrent = subscription?.subscription.vipLevel === level && subscription?.subscription.status === "ACTIVE";
+                      return (
+                        <div
+                          key={level}
+                          className={`flex flex-col justify-between rounded-2xl border p-5 transition-all ${
+                            isCurrent
+                              ? "border-[#FFDE00] bg-gradient-to-b from-[#2e260e] to-[#12141a] shadow-lg shadow-amber-500/10"
+                              : "border-white/10 bg-white/5 hover:border-amber-400/40"
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-black text-[#FFDE00]">{plan.name}</p>
+                              {isCurrent && (
+                                <span className="rounded-full bg-[#FFDE00] px-2 py-0.5 text-[9px] font-black text-black">
+                                  PLANO ATUAL
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-2 text-2xl font-black text-white">
+                              R$ {plan.monthlyPriceBRL.toFixed(2).replace(".", ",")}
+                              <span className="text-xs font-normal text-zinc-400">/mês</span>
+                            </p>
+                            <div className="mt-3 space-y-1.5 text-xs text-zinc-300">
+                              <p className="flex items-center gap-1.5">
+                                <span className="text-emerald-400 font-bold">✓</span> {plan.maxSaves} saves globais
+                              </p>
+                              <p className="flex items-center gap-1.5">
+                                <span className="text-emerald-400 font-bold">✓</span> {plan.maxBytes / 1_000_000} MB na nuvem
+                              </p>
+                              <p className="flex items-center gap-1.5">
+                                <span className="text-emerald-400 font-bold">✓</span> Sincronização no Launcher
+                              </p>
+                              <p className="flex items-center gap-1.5">
+                                <span className="text-emerald-400 font-bold">✓</span> 30 dias de carência
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPlanLevel(level);
+                              setCheckoutSuccess(null);
+                              setCheckoutError(null);
+                              setCheckoutModalOpen(true);
+                            }}
+                            className={`mt-5 w-full rounded-xl py-2.5 px-4 text-xs font-black uppercase tracking-wider transition-all ${
+                              isCurrent
+                                ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700 cursor-pointer"
+                                : "bg-[#FFDE00] text-black hover:bg-[#ffe53b] shadow-md shadow-amber-500/15 cursor-pointer"
+                            }`}
+                          >
+                            {isCurrent ? "Renovar Meu Plano" : `Assinar ${plan.name}`}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-4 text-xs text-zinc-500">Pagamento processado em ambiente seguro com conciliação automática. Seus saves locais continuam 100% gratuitos.</p>
                 </div>
                 <div className="rounded-2xl border border-zinc-700 bg-black/20 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-lg font-black">Meus saves na nuvem</h3>
@@ -533,6 +644,197 @@ export default function PortalPage() {
           </section>
         </div>
       </main>
+
+      {/* MODAL GATEWAY DE PAGAMENTO RENPLAY */}
+      {checkoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-lg rounded-3xl border border-[#FFDE00]/40 bg-[#12141c] p-6 sm:p-8 text-white shadow-2xl shadow-amber-500/10">
+            <button
+              type="button"
+              onClick={() => setCheckoutModalOpen(false)}
+              className="absolute top-5 right-5 text-zinc-400 hover:text-white text-lg p-2 rounded-lg bg-white/5 hover:bg-white/10"
+              aria-label="Fechar"
+            >
+              ✕
+            </button>
+
+            {checkoutSuccess ? (
+              <div className="text-center py-6 space-y-4">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-3xl">
+                  ✓
+                </div>
+                <h3 className="text-2xl font-black text-white">Pagamento Confirmado!</h3>
+                <p className="text-sm text-zinc-300 max-w-sm mx-auto leading-relaxed">
+                  {checkoutSuccess}
+                </p>
+                <div className="p-3 bg-black/30 rounded-xl border border-white/10 text-xs text-[#FFDE00]">
+                  ✦ Seus benefícios VIP e slots de nuvem já estão ativos no Site e no Launcher.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCheckoutModalOpen(false)}
+                  className="mt-4 px-6 py-2.5 rounded-xl bg-[#FFDE00] text-black font-black text-xs uppercase tracking-wider hover:bg-[#ffe53b]"
+                >
+                  Concluir e Voltar
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-[#FFDE00] px-2 py-0.5 text-[9px] font-black text-black uppercase">
+                    Checkout Seguro
+                  </span>
+                  <span className="text-xs text-zinc-400">Gateway de Pagamento RenPlay</span>
+                </div>
+                <h3 className="mt-2 text-xl font-black">
+                  Contratar {subscription?.plans?.[selectedPlanLevel]?.name || "RenPlay VIP"}
+                </h3>
+
+                {/* Resumo do Pedido */}
+                <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-400">Assinante:</span>
+                    <strong className="text-white">@{user.username} ({user.displayName})</strong>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-400">E-mail:</span>
+                    <span className="text-zinc-300">{user.email}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-400">Plano Selecionado:</span>
+                    <strong className="text-[#FFDE00]">
+                      {subscription?.plans?.[selectedPlanLevel]?.name} ({subscription?.plans?.[selectedPlanLevel]?.maxSaves} saves · {Number(subscription?.plans?.[selectedPlanLevel]?.maxBytes || 0) / 1_000_000} MB)
+                    </strong>
+                  </div>
+                  <div className="pt-2 border-t border-white/10 flex justify-between items-center">
+                    <span className="text-sm font-bold">Total Mensal:</span>
+                    <strong className="text-xl font-black text-[#FFDE00]">
+                      R$ {Number(subscription?.plans?.[selectedPlanLevel]?.monthlyPriceBRL || 0).toFixed(2).replace(".", ",")}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Escolha do Método */}
+                <div className="mt-5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                    Forma de Pagamento
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("pix")}
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-black transition-all ${
+                        paymentMethod === "pix"
+                          ? "border-[#FFDE00] bg-amber-500/10 text-[#FFDE00]"
+                          : "border-white/10 bg-white/5 text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      <span>⚡</span> PIX Instantâneo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("card")}
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-black transition-all ${
+                        paymentMethod === "card"
+                          ? "border-[#FFDE00] bg-amber-500/10 text-[#FFDE00]"
+                          : "border-white/10 bg-white/5 text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      <span>💳</span> Cartão de Crédito
+                    </button>
+                  </div>
+                </div>
+
+                {/* Conteúdo do Método */}
+                {paymentMethod === "pix" ? (
+                  <div className="mt-4 p-4 rounded-xl border border-white/10 bg-black/40 text-center space-y-3">
+                    <div className="w-24 h-24 mx-auto rounded-xl bg-white p-2 flex items-center justify-center">
+                      {/* Stylized QR Code placeholder */}
+                      <svg viewBox="0 0 100 100" className="w-full h-full text-black" fill="currentColor">
+                        <path d="M0 0h30v30H0zM10 10h10v10H10zM70 0h30v30H70zM80 10h10v10H80zM0 70h30v30H0zM10 80h10v10H10zM40 10h10v20H40zM50 40h20v10H50zM40 70h20v10H40zM70 50h10v20H70zM80 80h20v20H80z"/>
+                      </svg>
+                    </div>
+                    <p className="text-xs text-zinc-300">
+                      Escaneie o QR Code ou use a chave Copia-e-Cola abaixo no app do seu banco:
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`00020126580014br.gov.bcb.pix0136renplay-vip-${selectedPlanLevel}-${Date.now()}5204000053039865802BR`}
+                        className="w-full text-[11px] p-2 rounded-lg bg-black/60 border border-white/10 text-zinc-400 select-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCopiedPix(true);
+                          setTimeout(() => setCopiedPix(false), 2000);
+                        }}
+                        className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold shrink-0 text-white"
+                      >
+                        {copiedPix ? "✓ Copiado" : "Copiar"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 p-4 rounded-xl border border-white/10 bg-black/40 space-y-3 text-xs">
+                    <div>
+                      <label className="block text-zinc-400 mb-1">Número do Cartão</label>
+                      <input
+                        type="text"
+                        placeholder="4532 •••• •••• 8899"
+                        className="w-full p-2.5 rounded-lg bg-zinc-900 border border-zinc-700 text-white outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-zinc-400 mb-1">Validade</label>
+                        <input
+                          type="text"
+                          placeholder="MM/AA"
+                          className="w-full p-2.5 rounded-lg bg-zinc-900 border border-zinc-700 text-white outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-zinc-400 mb-1">CVV</label>
+                        <input
+                          type="text"
+                          placeholder="123"
+                          className="w-full p-2.5 rounded-lg bg-zinc-900 border border-zinc-700 text-white outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {checkoutError && (
+                  <div className="mt-3 p-3 rounded-xl bg-red-950/40 border border-red-500/40 text-xs text-red-200">
+                    ⚠ {checkoutError}
+                  </div>
+                )}
+
+                <div className="mt-6 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutModalOpen(false)}
+                    className="flex-1 py-3 px-4 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-bold text-zinc-300"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={checkoutLoading}
+                    onClick={handleConfirmPayment}
+                    className="flex-1 py-3 px-4 rounded-xl bg-[#FFDE00] hover:bg-[#ffe53b] text-black text-xs font-black uppercase tracking-wider shadow-lg shadow-amber-500/20 disabled:opacity-60 cursor-pointer"
+                  >
+                    {checkoutLoading ? "Processando..." : `Confirmar Pagamento (${paymentMethod === "pix" ? "PIX" : "Cartão"})`}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

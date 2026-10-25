@@ -290,6 +290,8 @@ export interface ConfirmUploadOptions {
   user: AuthUser;
   uploadId: string;
   gameVersion?: string;
+  saveName?: string;
+  filename?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -424,6 +426,21 @@ export async function confirmCloudSaveUpload(
       oldObjectKeyToDelete = previousSave.object_key;
     }
 
+    // Look up game name and resolve original filename
+    const gameQuery = await client.query<{ name: string }>(
+      "SELECT name FROM rp_games WHERE id = $1 LIMIT 1",
+      [session.game_id]
+    );
+    const gameTitle = gameQuery.rows[0]?.name || String(metadata.gameName || metadata.gameTitle || "");
+    const requestedName = (options.saveName || options.filename || metadata.originalSaveName || metadata.saveName || metadata.filename || `slot_${session.slot_number}.save`) as string;
+    const cleanFilename = validateSaveFilename(requestedName);
+    const enrichedMetadata = {
+      ...metadata,
+      gameName: gameTitle,
+      gameTitle: gameTitle,
+      originalSaveName: cleanFilename
+    };
+
     // Insert or update slot record
     const saveRes = await client.query<{
       id: string;
@@ -460,13 +477,13 @@ export async function confirmCloudSaveUpload(
         user.id,
         session.game_id,
         session.slot_number,
-        `slot_${session.slot_number}.save`,
+        cleanFilename,
         finalObjectKey,
         verifiedSize,
         verifiedSha256,
         gameVersion,
         nextVersion,
-        JSON.stringify(metadata)
+        JSON.stringify(enrichedMetadata)
       ]
     );
 
@@ -541,6 +558,7 @@ export async function listGameCloudSaves(
     id: string;
     user_id: string;
     game_id: string;
+    game_name: string | null;
     slot_number: number;
     original_filename: string;
     object_key: string;
@@ -551,12 +569,13 @@ export async function listGameCloudSaves(
     metadata: Record<string, unknown>;
     updated_at: string;
   }>(
-    `SELECT id, user_id, game_id, slot_number, original_filename,
-            object_key, file_size, sha256, version, game_version,
-            metadata, updated_at
-       FROM rp_cloud_saves
-      WHERE user_id = $1 AND game_id = $2 AND status = 'ACTIVE'
-      ORDER BY slot_number ASC`,
+    `SELECT s.id, s.user_id, s.game_id, g.name AS game_name, s.slot_number, s.original_filename,
+            s.object_key, s.file_size, s.sha256, s.version, s.game_version,
+            s.metadata, s.updated_at
+       FROM rp_cloud_saves s
+       LEFT JOIN rp_games g ON g.id = s.game_id
+      WHERE s.user_id = $1 AND s.game_id = $2 AND s.status = 'ACTIVE'
+      ORDER BY s.slot_number ASC`,
     [user.id, canonicalGameId]
   );
 
@@ -564,6 +583,7 @@ export async function listGameCloudSaves(
     id: row.id,
     userId: row.user_id,
     gameId,
+    gameName: row.game_name || String(row.metadata?.gameName || ""),
     slotNumber: row.slot_number,
     filename: row.original_filename,
     saveName: row.original_filename,
