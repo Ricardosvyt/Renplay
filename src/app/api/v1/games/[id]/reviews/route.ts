@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { resolveGameId } from "@/lib/game-ids";
 
 export async function GET(
   request: Request,
@@ -16,6 +17,8 @@ export async function GET(
 
   try {
     const db = getDb();
+    const canonicalId = await resolveGameId(id, db);
+    if (!canonicalId) return NextResponse.json({ error: { code: "GAME_NOT_FOUND", message: "Jogo não encontrado." } }, { status: 404 });
 
     // Busca avaliações ativas do jogo
     const reviewsResult = await db.query<{
@@ -42,7 +45,7 @@ export async function GET(
       WHERE r.game_id = $1 AND r.hidden = false
       ORDER BY r.created_at DESC
       LIMIT 100`,
-      [id]
+      [canonicalId]
     );
 
     const statsResult = await db.query<{
@@ -54,7 +57,7 @@ export async function GET(
         ROUND(AVG(rating)::numeric, 1)::text AS avg
       FROM rp_reviews
       WHERE game_id = $1 AND hidden = false`,
-      [id]
+      [canonicalId]
     );
 
     const reviewCount = Number(statsResult.rows[0]?.count ?? 0);
@@ -124,6 +127,8 @@ export async function POST(
     const rating = Number.isInteger(rawRating) && rawRating >= 1 && rawRating <= 5 ? rawRating : 5;
 
     const db = getDb();
+    const canonicalId = await resolveGameId(id, db);
+    if (!canonicalId) return NextResponse.json({ error: { code: "GAME_NOT_FOUND", message: "Jogo não encontrado." } }, { status: 404 });
 
     // Upsert na tabela rp_reviews
     const upsertResult = await db.query<{
@@ -141,7 +146,7 @@ export async function POST(
          hidden = false,
          created_at = NOW()
        RETURNING id, rating, text, created_at`,
-      [user.id, id, rating, text]
+      [user.id, canonicalId, rating, text]
     );
 
     const saved = upsertResult.rows[0];
@@ -156,7 +161,7 @@ export async function POST(
         ROUND(AVG(rating)::numeric, 1)::text AS avg
       FROM rp_reviews
       WHERE game_id = $1 AND hidden = false`,
-      [id]
+      [canonicalId]
     );
 
     const reviewCount = Number(statsResult.rows[0]?.count ?? 0);

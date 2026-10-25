@@ -13,13 +13,13 @@ export async function GET(request: NextRequest) {
     const gamesResult = await db.query<{
       id: string; name: string; status: string; save_count: string; user_count: string; total_bytes: string;
     }>(`
-      SELECT g.id, g.name, g.status, COUNT(*)::text AS save_count,
+      SELECT g.public_id::text AS id, g.name, g.status, COUNT(*)::text AS save_count,
              COUNT(DISTINCT s.user_id)::text AS user_count,
              COALESCE(SUM(s.file_size), 0)::text AS total_bytes
         FROM rp_cloud_saves s
         JOIN rp_games g ON g.id = s.game_id
        WHERE s.status = 'ACTIVE'
-       GROUP BY g.id, g.name, g.status
+       GROUP BY g.id, g.public_id, g.name, g.status
        ORDER BY MAX(s.updated_at) DESC
     `);
     const games = gamesResult.rows.map((row) => ({
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     if (!gameId) return NextResponse.json({ games, gameId: null, saves: [], total: 0, page, pageSize: 25 }, { headers: { "Cache-Control": "no-store" } });
 
     const count = await db.query<{ total: string }>(
-      "SELECT COUNT(*)::text AS total FROM rp_cloud_saves WHERE game_id = $1 AND status = 'ACTIVE'",
+      "SELECT COUNT(*)::text AS total FROM rp_cloud_saves WHERE game_id IN (SELECT id FROM rp_games WHERE id = $1 OR public_id::text = $1) AND status = 'ACTIVE'",
       [gameId]
     );
     const saves = await db.query<{
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
              s.original_filename, s.file_size, s.version, s.game_version, s.updated_at
         FROM rp_cloud_saves s
         JOIN rp_users u ON u.id = s.user_id
-       WHERE s.game_id = $1 AND s.status = 'ACTIVE'
+       WHERE s.game_id IN (SELECT id FROM rp_games WHERE id = $1 OR public_id::text = $1) AND s.status = 'ACTIVE'
        ORDER BY s.updated_at DESC, s.id
        LIMIT 25 OFFSET $2
     `, [gameId, (page - 1) * 25]);

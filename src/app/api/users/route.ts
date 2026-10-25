@@ -19,15 +19,15 @@ const userQuery = `
   SELECT u.id, u.username, u.email, u.active, u.banned, u.banned_until, u.ban_reason, u.created_at,
          COALESCE((array_agg(ur.role ORDER BY CASE ur.role
            WHEN 'ADMIN' THEN 1 WHEN 'MODERATOR' THEN 2 WHEN 'DEVELOPER' THEN 3
-           WHEN 'TRANSLATOR' THEN 4 WHEN 'VIP' THEN 5 ELSE 6 END
-         ) FILTER (WHERE ur.role <> 'USER'))[1], 'USER') AS role
+           WHEN 'TRANSLATOR' THEN 4 ELSE 6 END
+         ) FILTER (WHERE ur.role NOT IN ('USER','VIP')))[1], 'USER') AS role
     FROM rp_users u
     LEFT JOIN rp_user_roles ur ON ur.user_id = u.id
    GROUP BY u.id
    ORDER BY u.created_at DESC`;
 
 function toRole(role: string) {
-  const roles: Record<string, string> = { ADMIN: "admin", MODERATOR: "moderador", DEVELOPER: "desenvolvedor", TRANSLATOR: "tradutor", VIP: "vip", USER: "membro" };
+  const roles: Record<string, string> = { ADMIN: "admin", MODERATOR: "moderador", DEVELOPER: "desenvolvedor", TRANSLATOR: "tradutor", USER: "membro" };
   return roles[role] || "membro";
 }
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const email = body.email?.trim().toLowerCase() || "";
     const password = body.password || "";
     const role = (body.role || "usuario").trim().toUpperCase();
-    const allowed = new Set(["USER", "ADMIN", "MODERATOR", "DEVELOPER", "TRANSLATOR", "VIP"]);
+    const allowed = new Set(["USER", "ADMIN", "MODERATOR", "DEVELOPER", "TRANSLATOR"]);
     if (!username || !email || password.length < 12 || !allowed.has(role)) return NextResponse.json({ error: "Preencha os dados corretamente. A senha deve ter pelo menos 12 caracteres." }, { status: 400 });
     const client = await getDb().connect();
     try {
@@ -116,7 +116,7 @@ export async function PATCH(request: NextRequest) {
     const username = body.username?.trim().toLowerCase();
     const email = body.email?.trim().toLowerCase();
     const role = (body.role || "USER").trim().toUpperCase();
-    const allowed = new Set(["USER", "ADMIN", "MODERATOR", "DEVELOPER", "TRANSLATOR", "VIP"]);
+    const allowed = new Set(["USER", "ADMIN", "MODERATOR", "DEVELOPER", "TRANSLATOR"]);
     if (!id || !username || !email || !allowed.has(role)) return NextResponse.json({ error: "Dados de perfil inválidos." }, { status: 400 });
     if (body.password?.trim() && body.password.trim().length < 12) {
       return NextResponse.json({ error: "A nova senha deve ter pelo menos 12 caracteres." }, { status: 400 });
@@ -132,7 +132,7 @@ export async function PATCH(request: NextRequest) {
         [id, username, email, body.active !== false, passwordHash, body.banned === true, body.banned === true ? (body.bannedUntil || null) : null, body.banned === true ? (body.banReason?.trim() || null) : null]
       );
       if (!updated.rows[0]) { await client.query("ROLLBACK"); return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 }); }
-      await client.query("DELETE FROM rp_user_roles WHERE user_id = $1 AND role <> 'USER'", [id]);
+      await client.query("DELETE FROM rp_user_roles WHERE user_id = $1 AND role NOT IN ('USER','VIP')", [id]);
       await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, 'USER') ON CONFLICT DO NOTHING", [id]);
       if (role !== "USER") await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, $2)", [id, role]);
       await client.query("COMMIT");

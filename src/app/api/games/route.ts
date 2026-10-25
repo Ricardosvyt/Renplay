@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         const currentUser = searchParams.get("includeAll") === "true" ? await getCurrentUser().catch(() => null) : null;
         const canManage = currentUser?.roles.some((role) => ["ADMIN", "DEVELOPER", "MODERATOR"].includes(role));
         const query = `
-          SELECT g.id, g.name, g.status, g.metadata, g.created_at, g.updated_at,
+          SELECT g.id, g.public_id::text AS public_id, g.name, g.status, g.metadata, g.created_at, g.updated_at,
             reviews.rating_average,
             COALESCE(reviews.review_count, 0)::int AS review_count,
             COALESCE(downloads.download_count, 0)::int AS download_count
@@ -66,7 +66,8 @@ export async function GET(request: NextRequest) {
             const sizeLabel = (meta.fileSize as string) || (meta.sizeLabel as string) || (meta.size as string) || (meta.tamanho as string) || "";
             return {
               ...meta,
-              id: row.id,
+              id: row.public_id,
+              legacyId: row.id,
               name: row.name,
               status: row.status,
               created_at: row.created_at,
@@ -159,7 +160,7 @@ export async function DELETE(request: NextRequest) {
 
     // Keep the canonical ID and Premium saves available for existing owners.
     const result = await getDb().query(
-      "UPDATE rp_games SET status = 'ARCHIVED', distribution_authorized = false, updated_at = now() WHERE id = $1 RETURNING id",
+      "UPDATE rp_games SET status = 'ARCHIVED', distribution_authorized = false, updated_at = now() WHERE id = $1 OR public_id::text = $1 RETURNING public_id::text AS id",
       [id]
     );
     if (result.rowCount === 0) return NextResponse.json({ error: "Jogo não encontrado." }, { status: 404 });
@@ -290,7 +291,7 @@ export async function POST(request: NextRequest) {
     const result = await getDb().query(
       `INSERT INTO rp_games (id, name, status, metadata, created_by, distribution_authorized)
        VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, status, metadata, created_at, updated_at`,
+       RETURNING public_id::text AS id, name, status, metadata, created_at, updated_at`,
       [id, name, status, metadata, user.id, status === "PUBLISHED"]
     );
 
@@ -324,7 +325,7 @@ export async function PATCH(request: NextRequest) {
 
     // Busca o jogo atual
     const current = await getDb().query<{ id: string; status: string; metadata: Record<string, unknown> }>(
-      "SELECT id, status, metadata FROM rp_games WHERE id = $1 LIMIT 1",
+      "SELECT id, status, metadata FROM rp_games WHERE id = $1 OR public_id::text = $1 LIMIT 1",
       [id]
     );
 
@@ -348,8 +349,8 @@ export async function PATCH(request: NextRequest) {
               metadata = $2,
               distribution_authorized = $3,
               updated_at = now()
-        WHERE id = $4
-    RETURNING id, name, status, metadata, created_at, updated_at`,
+        WHERE id = $4 OR public_id::text = $4
+    RETURNING public_id::text AS id, name, status, metadata, created_at, updated_at`,
       [newStatus, mergedMetadata, isPublished, id]
     );
 

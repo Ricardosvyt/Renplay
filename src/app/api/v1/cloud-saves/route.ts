@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import {
-  isUserPremium,
   listGameCloudSaves,
   deleteCloudSaveSlot
 } from "@/lib/cloud-saves";
+import { getSubscription } from "@/lib/subscriptions";
 
 export async function GET(request: Request) {
   const user = await getSessionUser(request);
@@ -26,12 +26,13 @@ export async function GET(request: Request) {
   }
 
   try {
-    const isPremium = isUserPremium(user);
+    const subscription = await getSubscription(user.id);
     const data = await listGameCloudSaves(user, gameId);
 
     return NextResponse.json(
       {
-        isPremium,
+        isPremium: subscription.canUpload,
+        subscription,
         saves: data.saves,
         quota: data.quota
       },

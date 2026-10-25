@@ -30,7 +30,7 @@ export async function GET(
       status: string;
       metadata: Record<string, unknown>;
     }>(
-      "SELECT id, name, status, metadata FROM rp_games WHERE id = $1 LIMIT 1",
+      "SELECT public_id::text AS id, name, status, metadata FROM rp_games WHERE id = $1 OR public_id::text = $1 LIMIT 1",
       [id]
     );
 

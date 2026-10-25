@@ -30,16 +30,48 @@ try {
     const result = await client.query(
       `INSERT INTO rp_users (username, email, display_name, password_hash, active, email_verified)
        VALUES ($1, $2, $3, $4, true, true)
+       ON CONFLICT (username) DO UPDATE
+         SET password_hash = EXCLUDED.password_hash,
+             display_name = EXCLUDED.display_name,
+             active = true,
+             email_verified = true
        RETURNING id`,
       [account.username, account.email, account.displayName, passwordHash]
     );
-    await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, 'USER') ON CONFLICT DO NOTHING", [result.rows[0].id]);
+    const userId = result.rows[0].id;
+    await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, 'USER') ON CONFLICT DO NOTHING", [userId]);
     if (account.role !== "USER") {
-      await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, $2)", [result.rows[0].id, account.role]);
+      await client.query("INSERT INTO rp_user_roles (user_id, role) VALUES ($1, $2) ON CONFLICT DO NOTHING", [userId, account.role]);
+    }
+
+    if (account.role === "VIP" || account.username === "teste.vip") {
+      await client.query(
+        `INSERT INTO rp_subscriptions (
+           user_id, vip_level, subscription_status, current_period_start, current_period_end,
+           cancel_at_period_end, grace_started_at, grace_expires_at, cloud_deletion_status,
+           last_payment_confirmed_at, updated_at
+         ) VALUES (
+           $1, 2, 'ACTIVE', now(), now() + interval '30 days',
+           false, NULL, NULL, 'NONE',
+           now(), now()
+         )
+         ON CONFLICT (user_id) DO UPDATE SET
+           vip_level = 2,
+           subscription_status = 'ACTIVE',
+           current_period_start = now(),
+           current_period_end = now() + interval '30 days',
+           cancel_at_period_end = false,
+           grace_started_at = NULL,
+           grace_expires_at = NULL,
+           cloud_deletion_status = 'NONE',
+           last_payment_confirmed_at = now(),
+           updated_at = now()`,
+        [userId]
+      );
     }
   }
   await client.query("COMMIT");
-  console.log(`Contas criadas: ${accounts.length}`);
+  console.log(`Contas criadas/atualizadas com sucesso (${accounts.length} contas). teste.vip provisionado com plano Pro ativo.`);
 } catch (error) {
   await client.query("ROLLBACK").catch(() => undefined);
   throw error;

@@ -23,7 +23,7 @@ export async function POST(
   }
 
   const gameCheck = await getDb().query<{ id: string; name: string }>(
-    "SELECT id, name FROM rp_games WHERE id = $1 AND status = 'PUBLISHED' LIMIT 1",
+    "SELECT id, name FROM rp_games WHERE (id = $1 OR public_id::text = $1) AND status = 'PUBLISHED' LIMIT 1",
     [gameId]
   );
 
@@ -38,7 +38,7 @@ export async function POST(
     `INSERT INTO rp_library (user_id, game_id, added_at)
      VALUES ($1, $2, now())
      ON CONFLICT (user_id, game_id) DO NOTHING`,
-    [user.id, gameId]
+    [user.id, gameCheck.rows[0].id]
   );
 
   return NextResponse.json({ success: true, added: true, gameId });
@@ -65,7 +65,7 @@ export async function DELETE(
   }
 
   const deleteRes = await getDb().query(
-    "DELETE FROM rp_library WHERE user_id = $1 AND game_id = $2 RETURNING game_id",
+    "DELETE FROM rp_library WHERE user_id = $1 AND game_id IN (SELECT id FROM rp_games WHERE id = $2 OR public_id::text = $2) RETURNING game_id",
     [user.id, gameId]
   );
 

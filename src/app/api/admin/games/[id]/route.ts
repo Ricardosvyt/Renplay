@@ -17,7 +17,7 @@ export async function GET(_request: Request, context: Context) {
   if (denied) return denied;
   const { id } = await context.params;
   const result = await getDb().query(
-    "SELECT id, name, status, metadata, updated_at FROM rp_games WHERE id = $1 LIMIT 1",
+    "SELECT public_id::text AS id, name, status, metadata, updated_at FROM rp_games WHERE id = $1 OR public_id::text = $1 LIMIT 1",
     [id]
   );
   if (!result.rows[0]) return NextResponse.json({ error: "Jogo não encontrado." }, { status: 404 });
@@ -58,8 +58,8 @@ export async function PATCH(request: Request, context: Context) {
       `UPDATE rp_games
           SET name = $2, status = $3, metadata = metadata || $4::jsonb,
               distribution_authorized = ($3 = 'PUBLISHED'), updated_at = now()
-        WHERE id = $1
-        RETURNING id, name, status, metadata, updated_at`,
+        WHERE id = $1 OR public_id::text = $1
+        RETURNING public_id::text AS id, name, status, metadata, updated_at`,
       [id, name, status, JSON.stringify(metadata)]
     );
     if (!result.rows[0]) return NextResponse.json({ error: "Jogo não encontrado." }, { status: 404 });

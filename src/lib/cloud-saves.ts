@@ -2,6 +2,8 @@ import { Pool, PoolClient } from "pg";
 import { getDb } from "@/lib/db";
 import { AuthUser } from "@/lib/auth";
 import { randomUUID } from "node:crypto";
+import { getSubscription } from "@/lib/subscriptions";
+import { resolveGameId, publicGameId } from "@/lib/game-ids";
 import {
   createPresignedUploadUrl,
   createPresignedDownloadUrl,
@@ -23,18 +25,13 @@ export interface CloudSavePolicy {
 
 const DEFAULT_POLICY: CloudSavePolicy = {
   enabled: true,
-  maxSlotsPerGame: 3,
+  maxSlotsPerGame: 400,
   maxFileBytes: 26_214_400, // 25 MB
   maxUserBytes: 100_000_000, // 100 MB per user
   globalLimitBytes: 8_000_000_000, // 8 GB global safety limit
   warningBytes: 7_000_000_000, // 7 GB warning threshold
   presignedUrlTtlSeconds: 120
 };
-
-export function isUserPremium(user: AuthUser | null | undefined): boolean {
-  if (!user || !user.active) return false;
-  return user.roles.some((r) => r === "VIP" || r === "ADMIN");
-}
 
 export async function getCloudSavePolicy(client?: PoolClient | Pool): Promise<CloudSavePolicy> {
   const db = client ?? getDb();
@@ -141,7 +138,8 @@ export async function initCloudSaveUpload(
 ): Promise<InitUploadResult> {
   const { user, gameId, filename, fileSizeBytes, sha256 } = options;
 
-  if (!isUserPremium(user)) {
+  let subscription = await getSubscription(user.id);
+  if (!user.active || !subscription.canUpload) {
     throw new Error("Recurso exclusivo RenPlay Premium. Faça upgrade para proteger seus saves na nuvem.");
   }
 
@@ -154,13 +152,16 @@ export async function initCloudSaveUpload(
 
   try {
     await client.query("BEGIN");
+    await client.query("SELECT user_id FROM rp_subscriptions WHERE user_id = $1 FOR UPDATE", [user.id]);
+    subscription = await getSubscription(user.id, client);
+    if (!subscription.canUpload) throw new Error("Assinatura sem período pago vigente.");
 
     const policy = await getCloudSavePolicy(client);
     if (!policy.enabled) {
       throw new Error("O serviço Cloud Save está em manutenção no momento.");
     }
 
-    const slot = validateSlotNumber(options.slotNumber, policy.maxSlotsPerGame);
+    const slot = validateSlotNumber(options.slotNumber, 400);
     validateSaveFilename(filename);
     const validHash = validateSha256(sha256);
     const size = Number(fileSizeBytes);
@@ -170,9 +171,10 @@ export async function initCloudSaveUpload(
     }
 
     // Cloud saves must always use the canonical ID assigned by the site.
+    const canonicalGameId = await resolveGameId(gameId, client);
     const gameRes = await client.query<{ id: string; name: string }>(
       "SELECT id, name FROM rp_games WHERE id = $1 AND status = 'PUBLISHED' LIMIT 1",
-      [gameId]
+      [canonicalGameId]
     );
     if (!gameRes.rows[0]) {
       throw new Error("Jogo publicado não encontrado. Use o ID do catálogo RenPlay.");
@@ -190,16 +192,6 @@ export async function initCloudSaveUpload(
       throw new Error("Capacidade global do Cloud Save temporariamente atingida. Tente novamente mais tarde.");
     }
 
-    // Check user's current storage quota
-    // If replacing an existing active save in this slot, subtract its confirmed size
-    const existingSlotRes = await client.query<{ file_size: string }>(
-      `SELECT file_size FROM rp_cloud_saves
-        WHERE user_id = $1 AND game_id = $2 AND slot_number = $3 AND status = 'ACTIVE'
-        LIMIT 1`,
-      [user.id, gameId, slot]
-    );
-    const existingSlotBytes = Number(existingSlotRes.rows[0]?.file_size || 0);
-
     // Get or initialize user's usage record with row-level lock
     await client.query(
       `INSERT INTO rp_cloud_storage_usage (user_id, confirmed_bytes, reserved_bytes)
@@ -216,10 +208,28 @@ export async function initCloudSaveUpload(
     const confirmed = Number(userUsageRes.rows[0]?.confirmed_bytes || 0);
     const reserved = Number(userUsageRes.rows[0]?.reserved_bytes || 0);
 
+    // Serialize slot/quota decisions for this account behind the usage lock.
+    const existingSlotRes = await client.query<{ file_size: string }>(
+      `SELECT file_size FROM rp_cloud_saves
+        WHERE user_id = $1 AND game_id = $2 AND slot_number = $3 AND status = 'ACTIVE'
+        LIMIT 1`, [user.id, canonicalGameId, slot]);
+    const existingSlotBytes = Number(existingSlotRes.rows[0]?.file_size || 0);
+
     const effectiveTotalAfterUpload = (confirmed - existingSlotBytes) + reserved + size;
 
-    if (effectiveTotalAfterUpload > policy.maxUserBytes) {
-      throw new Error(`Limite de armazenamento da conta atingido (máximo de ${Math.round(policy.maxUserBytes / (1024 * 1024))} MB).`);
+    if (effectiveTotalAfterUpload > subscription.maxBytes && size > existingSlotBytes) {
+      throw new Error(`Limite de armazenamento do plano atingido (máximo de ${Math.round(subscription.maxBytes / 1_000_000)} MB).`);
+    }
+
+    if (!existingSlotRes.rows[0]) {
+      const countRes = await client.query<{ count: string }>(
+        `SELECT count(*)::text AS count FROM rp_cloud_saves WHERE user_id = $1 AND status = 'ACTIVE'`, [user.id]);
+      const pendingRes = await client.query<{ count: string }>(
+        `SELECT count(*)::text AS count FROM rp_cloud_upload_sessions
+          WHERE user_id = $1 AND status = 'PENDING' AND expires_at > now()`, [user.id]);
+      if (Number(countRes.rows[0]?.count || 0) + Number(pendingRes.rows[0]?.count || 0) >= subscription.maxSaves) {
+        throw new Error(`Limite global de ${subscription.maxSaves} saves do plano atingido.`);
+      }
     }
 
     // Atomic space reservation
@@ -243,7 +253,7 @@ export async function initCloudSaveUpload(
       [
         uploadSessionId,
         user.id,
-        gameId,
+        canonicalGameId,
         slot,
         temporaryObjectKey,
         size,
@@ -305,7 +315,7 @@ export async function confirmCloudSaveUpload(
 ): Promise<CloudSaveRecord> {
   const { user, uploadId, gameVersion = "", metadata = {} } = options;
 
-  if (!isUserPremium(user)) {
+  if (!user.active || !(await getSubscription(user.id)).canUpload) {
     throw new Error("Recurso exclusivo RenPlay Premium.");
   }
 
@@ -316,6 +326,9 @@ export async function confirmCloudSaveUpload(
 
   try {
     await client.query("BEGIN");
+    await client.query("SELECT user_id FROM rp_subscriptions WHERE user_id = $1 FOR UPDATE", [user.id]);
+    const currentSubscription = await getSubscription(user.id, client);
+    if (!currentSubscription.canUpload) throw new Error("Assinatura sem período pago vigente.");
 
     // Fetch session with row-level lock
     const sessionRes = await client.query<{
@@ -364,6 +377,8 @@ export async function confirmCloudSaveUpload(
 
     const expectedSize = Number(session.expected_size);
     const expectedHash = session.expected_hash;
+    const currentUsage = await client.query<{ confirmed_bytes: string }>(
+      "SELECT confirmed_bytes FROM rp_cloud_storage_usage WHERE user_id = $1 FOR UPDATE", [user.id]);
 
     // Check previous save in slot to calculate version increment & clean old object
     const previousSaveRes = await client.query<{
@@ -372,8 +387,9 @@ export async function confirmCloudSaveUpload(
       file_size: string;
       version: number;
       original_filename: string;
+      status: string;
     }>(
-      `SELECT id, object_key, file_size, version, original_filename
+      `SELECT id, object_key, file_size, version, original_filename, status
          FROM rp_cloud_saves
         WHERE user_id = $1 AND game_id = $2 AND slot_number = $3
           FOR UPDATE`,
@@ -381,6 +397,18 @@ export async function confirmCloudSaveUpload(
     );
 
     const previousSave = previousSaveRes.rows[0];
+    const previousSize = previousSave?.status === "ACTIVE" ? Number(previousSave.file_size || 0) : 0;
+    if (previousSave?.status !== "ACTIVE") {
+      const count = await client.query<{ total: string }>(
+        "SELECT count(*)::text AS total FROM rp_cloud_saves WHERE user_id = $1 AND status = 'ACTIVE'", [user.id]);
+      if (Number(count.rows[0]?.total || 0) >= currentSubscription.maxSaves) {
+        throw new Error(`Limite global de ${currentSubscription.maxSaves} saves do plano atingido.`);
+      }
+    }
+    const projectedBytes = Number(currentUsage.rows[0]?.confirmed_bytes || 0) - previousSize + expectedSize;
+    if (projectedBytes > currentSubscription.maxBytes && expectedSize > previousSize) {
+      throw new Error("Limite de armazenamento do plano atingido.");
+    }
     const nextVersion = (previousSave?.version || 0) + 1;
     const finalObjectKey = `users/${user.id}/games/${session.game_id}/slot_${session.slot_number}_v${nextVersion}.save`;
 
@@ -392,8 +420,7 @@ export async function confirmCloudSaveUpload(
       expectedHash
     );
 
-    const previousSize = Number(previousSave?.file_size || 0);
-    if (previousSave?.object_key) {
+    if (previousSave?.status === "ACTIVE" && previousSave.object_key) {
       oldObjectKeyToDelete = previousSave.object_key;
     }
 
@@ -470,7 +497,7 @@ export async function confirmCloudSaveUpload(
     return {
       id: row.id,
       userId: row.user_id,
-      gameId: row.game_id,
+      gameId: await publicGameId(row.game_id),
       slotNumber: row.slot_number,
       filename: row.original_filename,
       sizeBytes: Number(row.file_size),
@@ -494,15 +521,21 @@ export async function confirmCloudSaveUpload(
 export async function listGameCloudSaves(
   user: AuthUser,
   gameId: string
-): Promise<{ saves: CloudSaveRecord[]; quota: { confirmedBytes: number; maxBytes: number; maxSlots: number } }> {
+): Promise<{ saves: CloudSaveRecord[]; quota: { confirmedBytes: number; maxBytes: number; maxSlots: number; usedSaves: number } }> {
   const db = getDb();
-  const policy = await getCloudSavePolicy(db);
+  const subscription = await getSubscription(user.id, db);
+  const canonicalGameId = await resolveGameId(gameId, db);
+  if (!subscription.canDownload) {
+    return { saves: [], quota: { confirmedBytes: 0, maxBytes: subscription.maxBytes, maxSlots: subscription.maxSaves, usedSaves: 0 } };
+  }
 
   const usageRes = await db.query<{ confirmed_bytes: string }>(
     "SELECT confirmed_bytes FROM rp_cloud_storage_usage WHERE user_id = $1 LIMIT 1",
     [user.id]
   );
   const confirmedBytes = Number(usageRes.rows[0]?.confirmed_bytes || 0);
+  const countRes = await db.query<{ total: string }>(
+    "SELECT count(*)::text AS total FROM rp_cloud_saves WHERE user_id = $1 AND status = 'ACTIVE'", [user.id]);
 
   const savesRes = await db.query<{
     id: string;
@@ -524,13 +557,13 @@ export async function listGameCloudSaves(
        FROM rp_cloud_saves
       WHERE user_id = $1 AND game_id = $2 AND status = 'ACTIVE'
       ORDER BY slot_number ASC`,
-    [user.id, gameId]
+    [user.id, canonicalGameId]
   );
 
   const saves = savesRes.rows.map((row) => ({
     id: row.id,
     userId: row.user_id,
-    gameId: row.game_id,
+    gameId,
     slotNumber: row.slot_number,
     filename: row.original_filename,
     saveName: row.original_filename,
@@ -546,8 +579,9 @@ export async function listGameCloudSaves(
     saves,
     quota: {
       confirmedBytes,
-      maxBytes: policy.maxUserBytes,
-      maxSlots: policy.maxSlotsPerGame
+      maxBytes: subscription.maxBytes,
+      maxSlots: subscription.maxSaves,
+      usedSaves: Number(countRes.rows[0]?.total || 0)
     }
   };
 }
@@ -567,13 +601,14 @@ export async function initCloudSaveDownload(
   version: number;
   gameVersion: string;
 }> {
-  if (!isUserPremium(user)) {
+  if (!user.active || !(await getSubscription(user.id)).canDownload) {
     throw new Error("Recurso exclusivo RenPlay Premium.");
   }
 
   const db = getDb();
   const policy = await getCloudSavePolicy(db);
-  const slot = validateSlotNumber(slotNumber, policy.maxSlotsPerGame);
+  const slot = validateSlotNumber(slotNumber, 400);
+  const canonicalGameId = await resolveGameId(gameId, db);
 
   const res = await db.query<{
     object_key: string;
@@ -587,7 +622,7 @@ export async function initCloudSaveDownload(
        FROM rp_cloud_saves
       WHERE user_id = $1 AND game_id = $2 AND slot_number = $3 AND status = 'ACTIVE'
       LIMIT 1`,
-    [user.id, gameId, slot]
+    [user.id, canonicalGameId, slot]
   );
 
   const save = res.rows[0];
@@ -618,7 +653,7 @@ export async function deleteCloudSaveSlot(
   gameId: string,
   slotNumber: number
 ): Promise<{ deleted: boolean }> {
-  if (!isUserPremium(user)) {
+  if (!user.active || !(await getSubscription(user.id)).canUpload) {
     throw new Error("Recurso exclusivo RenPlay Premium.");
   }
 
@@ -630,13 +665,14 @@ export async function deleteCloudSaveSlot(
   try {
     await client.query("BEGIN");
     const policy = await getCloudSavePolicy(client);
-    const slot = validateSlotNumber(slotNumber, policy.maxSlotsPerGame);
+    const slot = validateSlotNumber(slotNumber, 400);
+    const canonicalGameId = await resolveGameId(gameId, client);
 
     const res = await client.query<{ object_key: string; file_size: string }>(
       `DELETE FROM rp_cloud_saves
         WHERE user_id = $1 AND game_id = $2 AND slot_number = $3 AND status = 'ACTIVE'
         RETURNING object_key, file_size`,
-      [user.id, gameId, slot]
+      [user.id, canonicalGameId, slot]
     );
 
     const deletedRow = res.rows[0];

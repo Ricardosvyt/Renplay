@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatImageUrl } from "@/lib/image-url";
+import { exportCloudSavesZip } from "@/lib/browser-save-zip";
 
 interface UserProfile {
   displayName: string;
@@ -21,6 +22,13 @@ interface LibraryGame {
   favorite: boolean;
   coverImage: string;
 }
+
+type SubscriptionView = {
+  subscription: { vipLevel: number; plan: string | null; status: string; periodEnd: string | null; graceExpiresAt: string | null; maxSaves: number; maxBytes: number; canDownload: boolean };
+  usage: { saves: number; bytes: number };
+  plans: Record<string, { name: string; monthlyPriceBRL: number; maxSaves: number; maxBytes: number }>;
+};
+type CloudSaveView = { gameId: string; gameName: string; slotNumber: number; filename: string; sizeBytes: number; updatedAt: string };
 
 export default function PortalPage() {
   const [activeTab, setActiveTab] = useState<"account" | "library" | "notifications" | "security">("account");
@@ -41,6 +49,10 @@ export default function PortalPage() {
   });
 
   const [library, setLibrary] = useState<LibraryGame[]>([]);
+  const [subscription, setSubscription] = useState<SubscriptionView | null>(null);
+  const [cloudSaves, setCloudSaves] = useState<CloudSaveView[]>([]);
+  const [saveError, setSaveError] = useState("");
+  const [zipProgress, setZipProgress] = useState("");
   const [loadingLibrary, setLoadingLibrary] = useState(true);
 
   // Carrega usuário autenticado e biblioteca sincronizada
@@ -78,6 +90,10 @@ export default function PortalPage() {
             );
           }
         }
+        const subscriptionRes = await fetch("/api/v1/subscription", { cache: "no-store" });
+        if (subscriptionRes.ok) setSubscription(await subscriptionRes.json());
+        const savesRes = await fetch("/api/v1/cloud-saves/all", { cache: "no-store" });
+        if (savesRes.ok) setCloudSaves((await savesRes.json()).saves || []);
       } catch (err) {
         console.warn("[Portal] Erro ao sincronizar dados:", err);
       } finally {
@@ -108,6 +124,27 @@ export default function PortalPage() {
     setLibrary((prev) =>
       prev.map((item) => (item.id === id ? { ...item, favorite: !item.favorite } : item))
     );
+  };
+
+  const downloadSave = async (save: CloudSaveView) => {
+    setSaveError("");
+    try {
+      const response = await fetch("/api/v1/cloud-saves/download", { method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameId: save.gameId, slotNumber: save.slotNumber }) });
+      const info = await response.json();
+      if (!response.ok || !info.downloadUrl) throw new Error(info.error?.message || "Download indisponível.");
+      const bytes = await fetch(info.downloadUrl);
+      if (!bytes.ok) throw new Error("Não foi possível obter o arquivo.");
+      const content = await bytes.arrayBuffer();
+      if (content.byteLength !== Number(info.sizeBytes)) throw new Error("O arquivo baixado tem tamanho diferente do registrado.");
+      const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", content)), byte => byte.toString(16).padStart(2, "0")).join("");
+      if (hash !== info.sha256) throw new Error("A verificação de integridade do save falhou.");
+      const blobUrl = URL.createObjectURL(new Blob([content], { type: "application/octet-stream" }));
+      const link = document.createElement("a");
+      link.href = blobUrl; link.download = save.filename; document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (error) { setSaveError(error instanceof Error ? error.message : "Falha ao baixar save."); }
   };
 
   const handleRemoveGame = async (gameId: string) => {
@@ -256,13 +293,82 @@ export default function PortalPage() {
                 </div>
 
                 <div className="pt-2">
-                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Cargos e Permissões</h4>
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Funções da conta</h4>
                   <div className="flex flex-wrap gap-2">
-                    {user.roles.map((r) => (
+                    {user.roles.filter((r) => r !== "VIP").map((r) => (
                       <span key={r} className="px-3 py-1 rounded-full text-xs font-bold bg-[#FFDE00]/15 text-[#FFDE00] border border-[#FFDE00]/30">
                         {r}
                       </span>
                     ))}
+                  </div>
+                </div>
+                {subscription?.subscription.status === "GRACE_PERIOD" && (
+                  <div className="rounded-2xl border border-red-500/40 bg-gradient-to-br from-red-950/40 via-red-900/20 to-black/40 p-5 sm:p-6 mb-4">
+                    <div className="flex items-center gap-2 text-red-400 font-bold text-xs uppercase tracking-wider">
+                      <span>⚠️</span>
+                      <span>Sua assinatura expirou</span>
+                    </div>
+                    <h3 className="mt-2 text-xl font-black text-white">Seus saves continuam disponíveis temporariamente para recuperação</h3>
+                    <p className="mt-2 text-xs text-red-200/90 leading-relaxed">
+                      Prazo restante: <strong className="text-white font-black">{Math.max(0, Math.ceil((new Date(subscription.subscription.graceExpiresAt!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} dias</strong> (expira em {new Date(subscription.subscription.graceExpiresAt!).toLocaleString("pt-BR")}).
+                      <br />
+                      Após o fim do prazo de 30 dias de carência, os arquivos da nuvem serão excluídos. Seus saves locais permanecem intactos.
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <a href="#planos" className="rounded-xl bg-[#FFDE00] px-4 py-2 text-xs font-black text-black hover:bg-[#ffe53b]">
+                        Renovar VIP
+                      </a>
+                      {cloudSaves.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSaveError("");
+                            void exportCloudSavesZip(cloudSaves, (done, total) => setZipProgress(`${done} / ${total}`))
+                              .then(() => setZipProgress("ZIP concluído"))
+                              .catch(error => { setZipProgress(""); setSaveError(error instanceof Error ? error.message : "Falha na exportação."); });
+                          }}
+                          className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20"
+                        >
+                          Baixar meus saves (Exportar ZIP)
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {subscription?.subscription.status === "CANCELED_BUT_ACTIVE" && (
+                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 mb-4 text-xs text-amber-200">
+                    <strong>Renovação automática cancelada:</strong> Seus benefícios do plano continuam ativos até {new Date(subscription.subscription.periodEnd!).toLocaleString("pt-BR")}.
+                  </div>
+                )}
+                {(subscription?.subscription.status === "DELETION_PENDING" || subscription?.subscription.status === "DELETED") && (
+                  <div className="rounded-2xl border border-zinc-700 bg-zinc-900/40 p-4 mb-4 text-xs text-zinc-400">
+                    <strong>Período de carência encerrado:</strong> Os saves da nuvem foram programados para exclusão segura. Seus saves locais no computador continuam disponíveis normalmente.
+                  </div>
+                )}
+                <div id="planos" className="rounded-2xl border border-[#FFDE00]/25 bg-gradient-to-br from-[#24210e] to-[#0b0e14] p-5 sm:p-6">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">Minha assinatura</p>
+                  <h3 className="mt-2 text-2xl font-black">{subscription?.subscription.plan || "RenPlay gratuito"}</h3>
+                  <p className="mt-1 text-xs text-zinc-400">{subscription?.subscription.status === "GRACE_PERIOD" ? `Carência para recuperar saves até ${new Date(subscription.subscription.graceExpiresAt!).toLocaleString("pt-BR")}` : subscription?.subscription.periodEnd ? `Período pago até ${new Date(subscription.subscription.periodEnd).toLocaleString("pt-BR")}` : "Escolha um dos três planos para enviar saves à nuvem."}</p>
+                  {subscription && <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl bg-black/30 p-3"><span className="text-[10px] text-zinc-400">Nível VIP</span><strong className="block text-lg">{subscription.subscription.vipLevel}</strong></div>
+                    <div className="rounded-xl bg-black/30 p-3"><span className="text-[10px] text-zinc-400">Saves na nuvem</span><strong className="block text-lg">{subscription.usage.saves} / {subscription.subscription.maxSaves || "—"}</strong></div>
+                    <div className="rounded-xl bg-black/30 p-3"><span className="text-[10px] text-zinc-400">Armazenamento</span><strong className="block text-lg">{(subscription.usage.bytes / 1_000_000).toFixed(1)} / {subscription.subscription.maxBytes ? (subscription.subscription.maxBytes / 1_000_000).toFixed(0) : "—"} MB</strong></div>
+                  </div>}
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">{Object.entries(subscription?.plans || {}).map(([level, plan]) => <div key={level} className="rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-sm font-black text-[#FFDE00]">{plan.name}</p><p className="mt-1 text-xl font-black">R$ {plan.monthlyPriceBRL.toFixed(2).replace(".", ",")}<span className="text-xs font-normal text-zinc-400">/mês</span></p><p className="mt-2 text-xs text-zinc-400">{plan.maxSaves} saves · {plan.maxBytes / 1_000_000} MB</p></div>)}</div>
+                  <p className="mt-4 text-xs text-zinc-500">A contratação será disponibilizada quando o pagamento estiver integrado. Seus saves locais continuam gratuitos.</p>
+                </div>
+                <div className="rounded-2xl border border-zinc-700 bg-black/20 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-lg font-black">Meus saves na nuvem</h3>
+                    {cloudSaves.length > 0 && <button type="button" onClick={() => { setSaveError(""); void exportCloudSavesZip(cloudSaves, (done, total) => setZipProgress(`${done} / ${total}`)).then(() => setZipProgress("ZIP concluído")).catch(error => { setZipProgress(""); setSaveError(error instanceof Error ? error.message : "Falha na exportação."); }); }} className="rounded-lg border border-[#FFDE00]/40 px-3 py-2 text-xs font-black text-[#FFDE00]">Exportar ZIP</button>}</div>
+                  <p className="mt-1 text-xs text-zinc-400">Você pode recuperar cada arquivo enquanto sua assinatura estiver ativa ou em carência.</p>
+                  {zipProgress && <p role="status" className="mt-2 text-xs text-[#FFDE00]">Exportação: {zipProgress}</p>}
+                  {saveError && <p role="alert" className="mt-3 text-xs text-red-300">{saveError}</p>}
+                  <div className="mt-4 max-h-80 space-y-2 overflow-y-auto">
+                    {cloudSaves.map(save => <div key={`${save.gameId}:${save.slotNumber}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                      <div><strong className="block text-xs">{save.gameName} · slot {save.slotNumber}</strong><span className="text-[11px] text-zinc-400">{save.filename} · {(save.sizeBytes / 1_000_000).toFixed(1)} MB</span></div>
+                      <button type="button" onClick={() => void downloadSave(save)} className="rounded-lg bg-[#FFDE00] px-3 py-2 text-xs font-black text-black">Baixar save</button>
+                    </div>)}
+                    {!cloudSaves.length && <p className="text-xs text-zinc-500">Nenhum save disponível para recuperação.</p>}
                   </div>
                 </div>
               </div>

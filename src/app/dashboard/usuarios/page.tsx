@@ -3,11 +3,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 
-type Role = "admin" | "moderador" | "desenvolvedor" | "tradutor" | "vip" | "membro";
+type Role = "admin" | "moderador" | "desenvolvedor" | "tradutor" | "membro";
 type User = { id: string; username: string; email: string; role: Role; status: "ACTIVE" | "INACTIVE" | "BANNED"; banned: boolean; banned_until: string | null; ban_reason: string | null; created_at: string };
 
-const labels: Record<Role, string> = { admin: "Administrador", moderador: "Moderador", desenvolvedor: "Desenvolvedor", tradutor: "Tradutor", vip: "Membro VIP", membro: "Membro" };
-const colors: Record<Role, string> = { admin: "border-red-400/30 bg-red-400/10 text-red-300", moderador: "border-blue-400/30 bg-blue-400/10 text-blue-300", desenvolvedor: "border-cyan-400/30 bg-cyan-400/10 text-cyan-300", tradutor: "border-purple-400/30 bg-purple-400/10 text-purple-300", vip: "border-[#FFDE00]/40 bg-[#FFDE00]/10 text-[#FFDE00]", membro: "border-zinc-700 bg-zinc-800/70 text-zinc-300" };
+const labels: Record<Role, string> = { admin: "Administrador", moderador: "Moderador", desenvolvedor: "Desenvolvedor", tradutor: "Tradutor", membro: "Membro" };
+const colors: Record<Role, string> = { admin: "border-red-400/30 bg-red-400/10 text-red-300", moderador: "border-blue-400/30 bg-blue-400/10 text-blue-300", desenvolvedor: "border-cyan-400/30 bg-cyan-400/10 text-cyan-300", tradutor: "border-purple-400/30 bg-purple-400/10 text-purple-300", membro: "border-zinc-700 bg-zinc-800/70 text-zinc-300" };
 
 function Icon({ type }: { type: "users" | "plus" | "trash" | "search" }) {
   const paths = { users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>, plus: <><path d="M12 5v14M5 12h14" /></>, trash: <><path d="M3 6h18M8 6V4h8v2m-9 0 1 15h8l1-15M10 10v7m4-7v7" /></>, search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></> };

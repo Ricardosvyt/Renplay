@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     const updated: CloudSavePolicy = {
       ...current,
       ...(typeof body.enabled === "boolean" ? { enabled: body.enabled } : {}),
-      ...(typeof body.maxSlotsPerGame === "number" && body.maxSlotsPerGame >= 1 && body.maxSlotsPerGame <= 10
+      ...(typeof body.maxSlotsPerGame === "number" && body.maxSlotsPerGame >= 1 && body.maxSlotsPerGame <= 400
         ? { maxSlotsPerGame: body.maxSlotsPerGame }
         : {}),
       ...(typeof body.maxFileBytes === "number" && body.maxFileBytes > 0

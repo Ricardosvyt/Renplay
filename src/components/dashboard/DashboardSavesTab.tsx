@@ -6,6 +6,15 @@ import Link from "next/link";
 type GameSummary = { id: string; name: string; status: string; saveCount: number; userCount: number; totalBytes: number };
 type Save = { id: string; userId: string; username: string; email: string; slotNumber: number; filename: string; sizeBytes: number; version: number; gameVersion: string; updatedAt: string };
 type Result = { games: GameSummary[]; gameId: string | null; saves: Save[]; total: number; page: number; pageSize: number; error?: string };
+type Retention = {
+  deletionEnabled: boolean;
+  cleanupPaused?: boolean;
+  configuredForDeletion?: boolean;
+  reason: string;
+  subscriptionStates: Record<string, number>;
+  jobs: Record<string, { count: number; bytesReclaimed: number }>;
+  dryRun: { userId: string; username: string; saveCount: number; bytes: number; graceExpiresAt: string }[];
+};
 
 const size = (bytes: number) => bytes >= 1024 * 1024
   ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
@@ -20,6 +29,12 @@ export function DashboardSavesTab() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retention, setRetention] = useState<Retention | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/cloud-retention", { cache: "no-store" }).then(response => response.ok ? response.json() : null)
+      .then(data => setRetention(data)).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -51,7 +66,63 @@ export function DashboardSavesTab() {
   const allSaves = games.reduce((sum, game) => sum + game.saveCount, 0);
   const allUsers = games.reduce((sum, game) => sum + game.userCount, 0);
 
+  const [adminActionMsg, setAdminActionMsg] = useState("");
+
+  const handleAdminRetentionAction = async (action: string) => {
+    setAdminActionMsg("Processando...");
+    try {
+      const res = await fetch("/api/admin/cloud-retention", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAdminActionMsg(
+          action === "pause" ? "Limpeza automática pausada com sucesso." :
+          action === "resume" ? "Limpeza automática retomada com sucesso." :
+          action === "retry_errors" ? `${data.retriedCount || 0} tarefas com erro colocadas na fila.` :
+          action === "dry_run" ? `Simulação concluída: ${data.dryRunResult?.deletedAccounts || 0} contas elegíveis.` : "Ação executada."
+        );
+        // Refresh retention info
+        const fresh = await fetch("/api/admin/cloud-retention", { cache: "no-store" }).then(r => r.ok ? r.json() : null);
+        if (fresh) setRetention(fresh);
+      } else {
+        setAdminActionMsg(data.error || "Falha na ação.");
+      }
+    } catch {
+      setAdminActionMsg("Erro de conexão ao processar ação.");
+    }
+  };
+
   return <div className="space-y-6 animate-fade-in-up">
+    {retention && <section className="rounded-[2rem] border border-amber-400/25 bg-[linear-gradient(125deg,#221f12,#12141D)] p-6 text-white sm:p-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">RenPlay · Retenção de Cloud Saves</p>
+          <h2 className="mt-2 text-xl font-black">Auditoria e controle de exclusão</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => handleAdminRetentionAction(retention.cleanupPaused ? "resume" : "pause")} className={`rounded-xl border px-3 py-1.5 text-xs font-bold transition ${retention.cleanupPaused ? "border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10" : "border-amber-500/40 text-amber-300 hover:bg-amber-500/10"}`}>
+            {retention.cleanupPaused ? "▶ Retomar Limpeza" : "⏸ Pausar Limpeza"}
+          </button>
+          <button type="button" onClick={() => handleAdminRetentionAction("retry_errors")} className="rounded-xl border border-white/20 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/10">
+            Reprocessar Erros
+          </button>
+          <button type="button" onClick={() => handleAdminRetentionAction("dry_run")} className="rounded-xl border border-[#FFDE00]/40 px-3 py-1.5 text-xs font-bold text-[#FFDE00] hover:bg-[#FFDE00]/10">
+            Simular Exclusão
+          </button>
+        </div>
+      </div>
+      <p className="mt-2 text-xs text-zinc-400">{retention.reason}</p>
+      {adminActionMsg && <p className="mt-2 text-xs font-bold text-[#FFDE00]">{adminActionMsg}</p>}
+      <div className="mt-5 grid gap-3 sm:grid-cols-4">
+        {[["Ativos", retention.subscriptionStates.ACTIVE || 0], ["Em carência", retention.subscriptionStates.GRACE_PERIOD || 0], ["Exclusão pendente", retention.subscriptionStates.DELETION_PENDING || 0], ["Tarefas com erro", retention.jobs.ERROR?.count || 0]].map(([label, value]) =>
+          <div key={String(label)} className="rounded-xl border border-white/10 bg-black/25 p-3"><span className="block text-[10px] text-zinc-400">{label}</span><strong className="text-xl">{value}</strong></div>)}
+      </div>
+      <p className="mt-4 text-xs font-bold text-[#FFDE00]">Simulação: {retention.dryRun.length} contas elegíveis na primeira página · exclusão física {retention.deletionEnabled ? "ativada" : "desativada"}</p>
+      {retention.dryRun.length > 0 && <div className="mt-3 space-y-2">{retention.dryRun.map(row => <div key={row.userId} className="flex flex-wrap justify-between gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs"><span>{row.username}</span><span>{row.saveCount} saves · {size(row.bytes)} · prazo {new Date(row.graceExpiresAt).toLocaleString("pt-BR")}</span></div>)}</div>}
+    </section>}
     <section className="relative overflow-hidden rounded-[2rem] border border-[#FFDE00]/25 bg-[radial-gradient(circle_at_top_right,rgba(255,222,0,0.12),transparent_45%),#12141D] p-6 sm:p-8">
       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FFDE00]">RenPlay Cloud Save</p>
       <h1 className="mt-2 text-3xl font-black tracking-tight text-white">Saves por jogo e usuário</h1>
