@@ -161,7 +161,7 @@ export async function initCloudSaveUpload(
     }
 
     const slot = validateSlotNumber(options.slotNumber, policy.maxSlotsPerGame);
-    const validFilename = validateSaveFilename(filename);
+    validateSaveFilename(filename);
     const validHash = validateSha256(sha256);
     const size = Number(fileSizeBytes);
 
@@ -169,21 +169,13 @@ export async function initCloudSaveUpload(
       throw new Error(`O arquivo excede o limite máximo permitido de ${Math.round(policy.maxFileBytes / (1024 * 1024))} MB.`);
     }
 
-    // Verify game exists or register custom game for this user
-    let gameRes = await client.query<{ id: string; name: string }>(
-      "SELECT id, name FROM rp_games WHERE id = $1 LIMIT 1",
+    // Cloud saves must always use the canonical ID assigned by the site.
+    const gameRes = await client.query<{ id: string; name: string }>(
+      "SELECT id, name FROM rp_games WHERE id = $1 AND status = 'PUBLISHED' LIMIT 1",
       [gameId]
     );
     if (!gameRes.rows[0]) {
-      const customTitle = String(
-        options.metadata?.gameName || options.metadata?.title || options.metadata?.name || gameId
-      ).slice(0, 150);
-      await client.query(
-        `INSERT INTO rp_games (id, name, status, created_by)
-         VALUES ($1, $2, 'DRAFT', $3)
-         ON CONFLICT (id) DO NOTHING`,
-        [gameId, customTitle, user.id]
-      );
+      throw new Error("Jogo publicado não encontrado. Use o ID do catálogo RenPlay.");
     }
 
     // Release any expired pending sessions for this user
@@ -224,7 +216,6 @@ export async function initCloudSaveUpload(
     const confirmed = Number(userUsageRes.rows[0]?.confirmed_bytes || 0);
     const reserved = Number(userUsageRes.rows[0]?.reserved_bytes || 0);
 
-    const netNewBytes = Math.max(0, size - existingSlotBytes);
     const effectiveTotalAfterUpload = (confirmed - existingSlotBytes) + reserved + size;
 
     if (effectiveTotalAfterUpload > policy.maxUserBytes) {

@@ -292,6 +292,7 @@ export function DashboardGamesTab({
                         <div>
                           <div className="font-bold text-white leading-snug">{game.title}</div>
                           <div className="text-[10px] text-zinc-400">{game.developer} · {game.genre}</div>
+                          <div className="mt-1 break-all font-mono text-[10px] text-[#FFDE00]/80" title="ID usado pelo launcher e pelos saves">ID: {game.id}</div>
                         </div>
                       </td>
                       <td className="p-4 font-mono text-zinc-300">v{game.version}</td>

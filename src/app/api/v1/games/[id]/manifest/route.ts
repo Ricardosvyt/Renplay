@@ -70,11 +70,11 @@ function parseSizeToBytes(val: string): number {
     if (meta.manifest && typeof meta.manifest === "object") {
       const customManifest = meta.manifest as Record<string, unknown>;
       return NextResponse.json({
+        strictSha256: Boolean(meta.strictSha256),
+        ...customManifest,
         schemaVersion: 1,
         gameId: game.id,
         name: game.name,
-        strictSha256: Boolean(meta.strictSha256),
-        ...customManifest,
       });
     }
 

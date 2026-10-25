@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
+import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
             FROM rp_downloads
             GROUP BY game_id
           ) downloads ON downloads.game_id = g.id
-          ${canManage ? "" : "WHERE g.status = 'PUBLISHED'"}
+          ${canManage ? "WHERE g.status <> 'ARCHIVED'" : "WHERE g.status = 'PUBLISHED'"}
           ORDER BY COALESCE((g.metadata->>'featuredOrder')::int, 0) DESC, g.updated_at DESC
         `;
         const res = await p.query(query);
@@ -64,12 +65,12 @@ export async function GET(request: NextRequest) {
             const avg = row.rating_average !== null && row.rating_average !== undefined ? Number(row.rating_average) : (meta.rating || null);
             const sizeLabel = (meta.fileSize as string) || (meta.sizeLabel as string) || (meta.size as string) || (meta.tamanho as string) || "";
             return {
+              ...meta,
               id: row.id,
               name: row.name,
               status: row.status,
               created_at: row.created_at,
               updated_at: row.updated_at,
-              ...meta,
               fileSize: (meta.fileSize as string) || sizeLabel,
               sizeLabel: sizeLabel,
               size: sizeLabel,
@@ -156,7 +157,11 @@ export async function DELETE(request: NextRequest) {
     const id = request.nextUrl.searchParams.get("id")?.trim();
     if (!id) return NextResponse.json({ error: "Informe o jogo que será excluído." }, { status: 400 });
 
-    const result = await getDb().query("DELETE FROM rp_games WHERE id = $1 RETURNING id", [id]);
+    // Keep the canonical ID and Premium saves available for existing owners.
+    const result = await getDb().query(
+      "UPDATE rp_games SET status = 'ARCHIVED', distribution_authorized = false, updated_at = now() WHERE id = $1 RETURNING id",
+      [id]
+    );
     if (result.rowCount === 0) return NextResponse.json({ error: "Jogo não encontrado." }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -229,8 +234,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cleanSlug = slugify(body.slug || name);
-    const id = `${cleanSlug}-${Date.now().toString(36)}`;
+    const cleanSlug = slugify(body.slug || name).slice(0, 40) || "jogo";
+    const id = `${cleanSlug}-${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`;
     const status = body.status === "PUBLISHED" ? "PUBLISHED" : body.status === "SUSPENDED" ? "SUSPENDED" : "DRAFT";
 
     const metadata = {

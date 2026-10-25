@@ -135,13 +135,16 @@ export default function DashboardPage() {
   };
 
   const handleBatchDelete = async (ids: string[]) => {
-    if (!confirm(`Deseja excluir definitivamente os ${ids.length} jogos selecionados?`)) return;
+    if (!confirm(`Deseja remover do catálogo os ${ids.length} jogos selecionados? Os saves dos usuários serão preservados.`)) return;
     try {
-      await Promise.all(
+      const responses = await Promise.all(
         ids.map((id) => fetch(`/api/games?id=${encodeURIComponent(id)}`, { method: "DELETE" }))
       );
-      setGames((current) => current.filter((g) => !ids.includes(g.id)));
-      showToast(`${ids.length} jogos excluídos com sucesso.`);
+      const removed = ids.filter((_, index) => responses[index].ok);
+      setGames((current) => current.filter((g) => !removed.includes(g.id)));
+      showToast(removed.length === ids.length
+        ? `${removed.length} jogos removidos do catálogo.`
+        : `${removed.length} de ${ids.length} jogos removidos do catálogo.`);
     } catch {
       showToast("Erro ao excluir lote de jogos.");
     }
