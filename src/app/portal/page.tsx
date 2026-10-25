@@ -39,11 +39,12 @@ export default function PortalPage() {
     return true;
   });
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<UserProfile>({
-    displayName: "Comandante RenPlay",
-    username: "player_one",
-    email: "player@renplay.com.br",
-    emailVerified: true,
+    displayName: "Jogador RenPlay",
+    username: "membro",
+    email: "Conecte sua conta para sincronizar",
+    emailVerified: false,
     roles: ["PLAYER"],
     mfaEnabled: false,
   });
@@ -68,6 +69,15 @@ export default function PortalPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
+      const urlUser = params.get("user");
+      if (urlUser) {
+        setUser(prev => ({
+          ...prev,
+          displayName: urlUser,
+          username: urlUser,
+          email: `${urlUser}@renplay.site`
+        }));
+      }
       if (params.get("planSelect") === "true" || window.location.hash === "#planos") {
         setActiveTab("account");
         setTimeout(() => {
@@ -109,8 +119,9 @@ export default function PortalPage() {
         if (meRes.ok) {
           const meData = await meRes.json();
           if (meData.user) {
+            setIsAuthenticated(true);
             setUser({
-              displayName: meData.user.displayName || meData.user.username,
+              displayName: meData.user.displayName || meData.user.display_name || meData.user.username,
               username: meData.user.username,
               email: meData.user.email,
               emailVerified: meData.user.emailVerified ?? true,
@@ -242,12 +253,21 @@ export default function PortalPage() {
             >
               ← Voltar ao Catálogo
             </Link>
-            <Link
-              href="/login"
-              className="text-xs font-bold px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
-            >
-              Sair
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/login"
+                className="text-xs font-bold px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                Sair
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-[#FFDE00] text-black hover:bg-[#ffe433] transition-colors"
+              >
+                Entrar na Conta
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -300,10 +320,10 @@ export default function PortalPage() {
 
             <div className="pt-4 border-t border-zinc-800/40">
               <Link
-                href="/dashboard"
+                href="/"
                 className="w-full block text-center py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors border border-zinc-700"
               >
-                Abrir Painel Epic Games →
+                ← Explorar Catálogo
               </Link>
             </div>
           </aside>
