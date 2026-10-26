@@ -26,11 +26,12 @@ export async function GET(
   try {
     const gameResult = await getDb().query<{
       id: string;
+      public_id: string;
       name: string;
       status: string;
       metadata: Record<string, unknown>;
     }>(
-      "SELECT public_id::text AS id, name, status, metadata FROM rp_games WHERE id = $1 OR public_id::text = $1 LIMIT 1",
+      "SELECT id, public_id::text AS public_id, name, status, metadata FROM rp_games WHERE id = $1 OR public_id::text = $1 LIMIT 1",
       [id]
     );
 
@@ -134,6 +135,7 @@ function normalizeDownloadUrl(url: string): string {
     const manifest = {
       schemaVersion: 1,
       gameId: game.id,
+      publicId: game.public_id,
       name: game.name,
       buildId: (meta.buildId as string) || crypto.randomUUID(),
       version: version,

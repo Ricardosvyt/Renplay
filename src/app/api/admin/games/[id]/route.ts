@@ -28,7 +28,7 @@ const editableFields = [
   "slug", "developer", "publisher", "genre", "category", "classification", "engine", "customEngine",
   "shortDescription", "description", "fullDescription", "gameIcon", "horizontalBanner", "bannerImage",
   "mainCover", "coverImage", "screenshots", "trailerUrl", "githubUrl", "version", "mainFileName",
-  "fileSize", "sha256", "downloadUrl", "downloadMirrors", "platforms", "systemRequirements",
+  "fileSize", "sha256", "downloadUrl", "androidGameUrl", "androidSha256", "downloadMirrors", "platforms", "systemRequirements",
   "languages", "translationStatus", "translatedBy", "translationNotes", "originalReleaseDate",
   "renplayPublishDate", "featuredOrder", "versionNotes", "releaseNotes", "responsibleDev",
   "responsibleTranslator", "editPermissions", "scheduledPublishDate", "changeLog", "tags",
@@ -49,6 +49,14 @@ export async function PATCH(request: Request, context: Context) {
     const status = body.status;
     if (!name || !developer || !description || !["DRAFT", "PUBLISHED", "SUSPENDED"].includes(String(status))) {
       return NextResponse.json({ error: "Nome, desenvolvedor, descrição e status válidos são obrigatórios." }, { status: 400 });
+    }
+    if (body.androidGameUrl) {
+      try {
+        if (typeof body.androidGameUrl !== "string" || new URL(body.androidGameUrl).protocol !== "https:") throw new Error();
+      } catch { return NextResponse.json({ error: "O ZIP Android precisa ter um link HTTPS válido." }, { status: 400 }); }
+    }
+    if (body.androidSha256 && (typeof body.androidSha256 !== "string" || !/^[a-f0-9]{64}$/i.test(body.androidSha256))) {
+      return NextResponse.json({ error: "O SHA-256 Android deve ter 64 caracteres hexadecimais." }, { status: 400 });
     }
     const metadata: Record<string, unknown> = { name, developer, shortDescription: description, description, status };
     for (const field of editableFields) {

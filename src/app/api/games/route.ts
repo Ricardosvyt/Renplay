@@ -204,6 +204,8 @@ export async function POST(request: NextRequest) {
       trailerUrl?: string;
       githubUrl?: string;
       downloadUrl?: string;
+      androidGameUrl?: string;
+      androidSha256?: string;
       downloadMirrors?: Array<{ id: string; name?: string; url: string; provider?: string; priority?: number }>;
       platforms?: string[];
       systemRequirements?: Record<string, string>;
@@ -234,6 +236,14 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (body.androidGameUrl) {
+      try {
+        if (new URL(body.androidGameUrl).protocol !== "https:") throw new Error();
+      } catch { return NextResponse.json({ error: "O ZIP Android precisa ter um link HTTPS válido." }, { status: 400 }); }
+    }
+    if (body.androidSha256 && !/^[a-f0-9]{64}$/i.test(body.androidSha256)) {
+      return NextResponse.json({ error: "O SHA-256 Android deve ter 64 caracteres hexadecimais." }, { status: 400 });
+    }
 
     const cleanSlug = slugify(body.slug || name).slice(0, 40) || "jogo";
     const id = `${cleanSlug}-${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`;
@@ -258,6 +268,8 @@ export async function POST(request: NextRequest) {
       fileSize: body.fileSize?.trim() || "",
       sha256: body.sha256?.trim() || "",
       downloadUrl: body.downloadUrl?.trim() || "",
+      androidGameUrl: body.androidGameUrl?.trim() || "",
+      androidSha256: body.androidSha256?.trim() || "",
       downloadMirrors: Array.isArray(body.downloadMirrors) ? body.downloadMirrors : [],
       platforms: Array.isArray(body.platforms) && body.platforms.length ? body.platforms : ["Windows"],
       systemRequirements: body.systemRequirements || {},

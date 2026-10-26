@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { VIP_PLANS } from "@/lib/subscriptions";
+import { VIP_PLANS } from "@/lib/subscription-plans";
 
 type UserProfile = {
   displayName: string;

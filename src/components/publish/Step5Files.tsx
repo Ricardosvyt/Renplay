@@ -8,6 +8,8 @@ interface Step3DownloadProps {
   platforms: string[];
   platformOptions: string[];
   downloadUrl: string;
+  androidGameUrl: string;
+  androidSha256: string;
   downloadMirrors: DownloadMirror[];
   mainFileName: string;
   fileSize: string;
@@ -49,6 +51,8 @@ export function Step5Files({
   platforms,
   platformOptions,
   downloadUrl,
+  androidGameUrl,
+  androidSha256,
   downloadMirrors,
   mainFileName,
   fileSize,
@@ -184,6 +188,14 @@ export function Step5Files({
         </div>
 
         {/* ESPELHOS DE DOWNLOAD (FAILOVER / REDUNDÂNCIA) */}
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+          <label htmlFor="android-game-url" className="text-sm font-black text-white">ZIP da pasta game para Android</label>
+          <p className="mt-1 text-xs text-zinc-400">Link HTTPS direto para um ZIP que contenha a pasta game. O app Android baixa e extrai somente essa pasta. Deixe vazio para jogos publicados apenas para PC.</p>
+          <input id="android-game-url" type="url" value={androidGameUrl} onChange={(e) => onUpdate("androidGameUrl", e.target.value)} className={`${inputClass} mt-3 text-sm`} placeholder="https://servidor.exemplo/jogo-android.zip" />
+          <label htmlFor="android-sha256" className="mt-4 block text-xs font-bold text-zinc-300">SHA-256 do ZIP Android (recomendado)</label>
+          <input id="android-sha256" type="text" value={androidSha256} onChange={(e) => onUpdate("androidSha256", e.target.value)} className={`${inputClass} mt-2 font-mono text-xs`} placeholder="64 caracteres hexadecimais" />
+        </div>
+
         <div className="rounded-2xl border border-[#29292F] bg-[#0E1017] p-5">
           <div className="flex items-center justify-between">
             <span className="text-sm font-black text-white">Espelhos de Download Adicionais (Redundância)</span>

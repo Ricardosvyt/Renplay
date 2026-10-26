@@ -54,6 +54,8 @@ function PublishGamePageContent() {
     fileSize: "",
     sha256: "",
     downloadUrl: "",
+    androidGameUrl: "",
+    androidSha256: "",
     downloadMirrors: [] as DownloadMirror[],
     systemRequirements: {
       os: "Windows 10 / 11 (64-bit)",
@@ -268,6 +270,8 @@ function PublishGamePageContent() {
       fileSize: form.fileSize,
       sha256: form.sha256,
       downloadUrl: form.downloadUrl,
+      androidGameUrl: form.androidGameUrl,
+      androidSha256: form.androidSha256,
       downloadMirrors: form.downloadMirrors,
       platforms,
       systemRequirements: form.systemRequirements,
@@ -439,6 +443,8 @@ function PublishGamePageContent() {
                     platforms={platforms}
                     platformOptions={platformOptions}
                     downloadUrl={form.downloadUrl}
+                    androidGameUrl={form.androidGameUrl}
+                    androidSha256={form.androidSha256}
                     downloadMirrors={form.downloadMirrors}
                     mainFileName={form.mainFileName}
                     fileSize={form.fileSize}
