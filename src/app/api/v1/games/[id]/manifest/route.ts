@@ -74,7 +74,9 @@ function parseSizeToBytes(val: string): number {
         strictSha256: Boolean(meta.strictSha256),
         ...customManifest,
         schemaVersion: 1,
-        gameId: game.id,
+        gameId: String(game.public_id || game.id),
+        publicId: String(game.public_id || game.id),
+        slug: game.id,
         name: game.name,
       });
     }
@@ -134,8 +136,9 @@ function normalizeDownloadUrl(url: string): string {
 
     const manifest = {
       schemaVersion: 1,
-      gameId: game.id,
-      publicId: game.public_id,
+      gameId: String(game.public_id || game.id),
+      publicId: String(game.public_id || game.id),
+      slug: game.id,
       name: game.name,
       buildId: (meta.buildId as string) || crypto.randomUUID(),
       version: version,

@@ -77,28 +77,40 @@ export function Step6Launch({
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-[#29292F] bg-[#0E1017] p-3.5">
-              <span className="text-xs font-black text-emerald-400">★ Avaliações & Média de Estrelas</span>
+              <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Avaliações & Média de Estrelas
+              </span>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
                 Calculadas dinamicamente na tabela <code className="text-zinc-300">rp_reviews</code>. Cada usuário pode avaliar de 1 a 5 estrelas e o sistema recalcula a nota média e o total de reviews.
               </p>
             </div>
 
             <div className="rounded-xl border border-[#29292F] bg-[#0E1017] p-3.5">
-              <span className="text-xs font-black text-cyan-400">↓ Total de Downloads</span>
+              <span className="text-xs font-black text-cyan-400 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg>
+                Total de Downloads
+              </span>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
                 Contabilizado a cada instalação pelo Launcher ou download direto registrado em <code className="text-zinc-300">rp_downloads</code>, atualizando o contador público.
               </p>
             </div>
 
             <div className="rounded-xl border border-[#29292F] bg-[#0E1017] p-3.5">
-              <span className="text-xs font-black text-purple-400">💬 Comentários & Comunidade</span>
+              <span className="text-xs font-black text-purple-400 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Comentários & Comunidade
+              </span>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
                 Armazenados de forma isolada, vinculando a conta do jogador à obra, com moderação ativa contra spam e ofensas.
               </p>
             </div>
 
             <div className="rounded-xl border border-[#29292F] bg-[#0E1017] p-3.5">
-              <span className="text-xs font-black text-amber-400">⚡ Jogos Recomendados</span>
+              <span className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Jogos Recomendados
+              </span>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
                 Sugeridos dinamicamente pela API por correspondência de gênero, engine e tags temáticas cadastradas na Etapa 1.
               </p>

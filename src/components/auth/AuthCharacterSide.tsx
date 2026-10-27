@@ -87,7 +87,7 @@ export function AuthCharacterSide({ isDark }: AuthCharacterSideProps) {
 
   return (
     <div
-      className={`order-2 lg:order-1 relative w-full lg:w-[56%] min-h-[300px] sm:min-h-[360px] lg:min-h-full overflow-hidden flex flex-col justify-center p-6 sm:p-14 z-10 animate-fade-in-up select-none transition-colors duration-300 ${
+      className={`hidden lg:flex order-2 lg:order-1 relative w-full lg:w-[56%] min-h-[300px] sm:min-h-[360px] lg:min-h-full overflow-hidden flex-col justify-center p-6 sm:p-14 z-10 animate-fade-in-up select-none transition-colors duration-300 ${
         isDark
           ? "bg-[#07070A] bg-[radial-gradient(ellipse_at_35%_40%,rgba(255,222,0,0.08),transparent_65%)]"
           : "bg-[#EAECEF] bg-[radial-gradient(ellipse_at_40%_40%,#FFFFFF,#DEE2E8_80%)]"

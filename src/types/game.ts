@@ -91,4 +91,9 @@ export interface LauncherInfo {
   channel: string;
   downloadUrl: string | null;
   notes: string;
+  downloads?: Partial<Record<"windows" | "linux" | "macos" | "android", {
+    url: string | null;
+    version?: string;
+    architecture?: string;
+  }>>;
 }

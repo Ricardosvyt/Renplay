@@ -223,27 +223,29 @@ export default function PlansCheckoutPage() {
           {/* BANNER DE STATUS ATUAL SE VIP OU CARÊNCIA */}
           {isCurrentVip && (
             <div className="mt-4 p-4 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs inline-flex items-center gap-2">
-              <span>👑</span>
+              <svg className="w-4 h-4 text-amber-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>
               <span>Você possui o plano <strong>{subscription?.plan}</strong> ativo até {subscription?.periodEnd ? new Date(subscription.periodEnd).toLocaleDateString("pt-BR") : "o próximo ciclo"}.</span>
             </div>
           )}
 
           {isGrace && (
             <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs inline-flex items-center gap-2">
-              <span>⚠️</span>
+              <svg className="w-4 h-4 text-red-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <span>Sua assinatura está em <strong>carência de 30 dias</strong>. Renove abaixo para manter o envio de novos saves liberado.</span>
             </div>
           )}
 
           {successBanner && (
             <div className="mt-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs inline-flex items-center gap-2">
+              <svg className="w-4 h-4 text-emerald-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
               <span>{successBanner}</span>
             </div>
           )}
 
           {checkoutError && (
             <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs inline-flex items-center gap-2">
-              <span>⚠️ {checkoutError}</span>
+              <svg className="w-4 h-4 text-red-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>{checkoutError}</span>
             </div>
           )}
         </div>
@@ -418,7 +420,9 @@ export default function PlansCheckoutPage() {
         {/* GARANTIAS E FAQ */}
         <div className="mt-16 pt-12 border-t border-zinc-800/80 grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
           <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800/60">
-            <span className="text-2xl mb-2 block">🛡️</span>
+            <span className="text-[#FFDE00] mb-3 block">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
             <h4 className="font-bold text-sm text-white">Saves Locais Preservados</h4>
             <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
               O ciclo da nuvem nunca apaga nem substitui seus arquivos locais sem seu consentimento expresso. Seus saves no PC continuam 100% seguros.
@@ -426,7 +430,9 @@ export default function PlansCheckoutPage() {
           </div>
 
           <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800/60">
-            <span className="text-2xl mb-2 block">💳</span>
+            <span className="text-[#FFDE00] mb-3 block">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            </span>
             <h4 className="font-bold text-sm text-white">Checkout Seguro Stripe</h4>
             <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
               Pagamento processado em ambiente certificado PCI-DSS nível 1 pela Stripe. Aceita Cartão de Crédito internacional e nacional, com renovação automática e cancelamento simples.
@@ -434,7 +440,9 @@ export default function PlansCheckoutPage() {
           </div>
 
           <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800/60">
-            <span className="text-2xl mb-2 block">⏳</span>
+            <span className="text-[#FFDE00] mb-3 block">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
             <h4 className="font-bold text-sm text-white">Carência Gratuita de 30 Dias</h4>
             <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
               Se você decidir pausar a assinatura, seus saves ficam guardados por 30 dias na nuvem com download gratuito garantido para resgate.
@@ -448,7 +456,9 @@ export default function PlansCheckoutPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="bg-[#12161f] border border-amber-400/40 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">⚡</span>
+              <span className="text-[#FFDE00] flex-shrink-0">
+                <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </span>
               <div>
                 <h3 className="text-base font-black text-white">Ambiente Stripe Conectado</h3>
                 <p className="text-xs text-zinc-400">Ativação de plano para @{user.username}</p>

@@ -119,7 +119,7 @@ export function LoginFormCard({ isDark }: LoginFormCardProps) {
 
   return (
     <div
-      className={`order-1 lg:order-2 w-full lg:w-[44%] flex items-center justify-center p-5 sm:p-12 z-20 relative animate-slide-in-right transition-colors duration-500 overflow-hidden lg:border-l ${
+      className={`order-1 lg:order-2 w-full lg:w-[44%] flex-1 flex items-center justify-center py-8 px-4 sm:p-12 z-20 relative animate-slide-in-right transition-colors duration-500 overflow-hidden lg:border-l ${
         isDark
           ? "bg-[#090A10] bg-[radial-gradient(ellipse_85%_85%_at_50%_50%,#151724_0%,#090A10_85%)] lg:border-white/[0.05]"
           : "bg-[#F7F8FA] bg-[radial-gradient(ellipse_85%_85%_at_50%_50%,#FFFFFF_0%,#EDF0F5_85%)] lg:border-black/[0.06]"
@@ -198,7 +198,7 @@ export function LoginFormCard({ isDark }: LoginFormCardProps) {
 
       {/* CARD FLUTUANTE COM ALTO CONTRASTE E GLASSMORPHISM */}
       <div
-        className={`w-full max-w-[430px] rounded-3xl p-8 sm:p-10 relative transition-all duration-300 backdrop-blur-2xl z-10 card-floating-element ${
+        className={`w-full max-w-[430px] rounded-3xl p-6 sm:p-10 relative transition-all duration-300 backdrop-blur-2xl z-10 card-floating-element ${
           isDark
             ? "bg-[#12141D]/96 border border-[#262B3D] shadow-[0_24px_70px_rgba(0,0,0,0.8),0_0_30px_rgba(255,222,0,0.05)] hover:border-[#FFDE00]/35"
             : "bg-white/95 border-2 border-zinc-200/90 shadow-[0_30px_80px_-15px_rgba(0,0,0,0.14),0_10px_30px_-10px_rgba(0,0,0,0.06)] hover:border-zinc-300"
@@ -279,7 +279,7 @@ export function LoginFormCard({ isDark }: LoginFormCardProps) {
                   type="text"
                   autoComplete="username"
                   maxLength={254}
-                  placeholder="nome@exemplo.com ou usuario"
+                  placeholder="Seu e-mail ou usuário"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   disabled={loading}

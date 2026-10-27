@@ -1,5 +1,5 @@
 const launcherCatalogQuery = `
-  SELECT g.id, g.name, g.status, g.metadata, g.created_at, g.updated_at,
+  SELECT g.id, g.public_id::text AS public_id, g.name, g.status, g.metadata, g.created_at, g.updated_at,
     reviews.rating_average,
     COALESCE(reviews.review_count, 0)::int AS review_count,
     COALESCE(downloads.download_count, 0)::int AS download_count
@@ -27,12 +27,17 @@ function mapLauncherCatalogGame(row) {
     : Number(row.rating_average);
 
   const sizeLabel = metadata.fileSize || metadata.sizeLabel || metadata.size || metadata.tamanho;
+  const canonicalId = String(row.public_id || row.id);
 
   return {
     ...metadata,
     ...(sizeLabel ? { fileSize: metadata.fileSize || sizeLabel, sizeLabel, size: sizeLabel } : {}),
     ...(metadata.sizeBytes ? { sizeBytes: Number(metadata.sizeBytes) } : {}),
-    id: row.id,
+    id: canonicalId,
+    publicId: row.public_id ? String(row.public_id) : undefined,
+    public_id: row.public_id ? String(row.public_id) : undefined,
+    legacyId: row.id,
+    slug: metadata.slug || row.id,
     name: row.name,
     ...(row.status ? { status: row.status } : {}),
     createdAt: row.created_at,
