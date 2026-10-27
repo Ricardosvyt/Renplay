@@ -9,7 +9,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://renplay.com.br"
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.renplay.site"
   ),
   title: {
     default: "RenPlay — Sua próxima história começa aqui",
@@ -38,14 +38,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    url: "/",
+    url: "https://www.renplay.site",
     siteName: "RenPlay",
     title: "RenPlay — Sua próxima história começa aqui",
     description:
       "Descubra visual novels e jogos Ren'Py, organize sua biblioteca e aproveite o launcher oficial para Windows, Linux, macOS e Android com sincronização de saves na nuvem.",
     images: [
       {
-        url: "/og-image.png",
+        url: "https://www.renplay.site/og-image.png",
         width: 1200,
         height: 630,
         alt: "RenPlay — Plataforma e Launcher Oficial de Visual Novels",
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     title: "RenPlay — Sua próxima história começa aqui",
     description:
       "Descubra visual novels e jogos Ren'Py, organize sua biblioteca e aproveite o launcher oficial para Windows, Linux, macOS e Android com sincronização de saves na nuvem.",
-    images: ["/og-image.png"],
+    images: ["https://www.renplay.site/og-image.png"],
     creator: "@RenPlayApp",
   },
   icons: {

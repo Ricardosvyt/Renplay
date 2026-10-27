@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import fs from "fs";
+import path from "path";
 
 export const alt = "RenPlay — Sua próxima história começa aqui";
 export const size = {
@@ -8,6 +10,15 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function Image() {
+  let logoSrc = "";
+
+  try {
+    const logoBuffer = fs.readFileSync(path.join(process.cwd(), "public", "Logo.png"));
+    logoSrc = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+  } catch (err) {
+    console.error("Erro ao carregar Logo.png:", err);
+  }
+
   return new ImageResponse(
     (
       <div
@@ -16,146 +27,132 @@ export default async function Image() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
+          alignItems: "center",
           justifyContent: "space-between",
-          backgroundColor: "#0C0D0F",
+          backgroundColor: "#0A0B0E",
           backgroundImage:
-            "radial-gradient(circle at 80% 30%, rgba(255, 222, 0, 0.15) 0%, transparent 60%), radial-gradient(circle at 15% 85%, rgba(255, 222, 0, 0.08) 0%, transparent 50%)",
-          padding: "60px 70px",
+            "radial-gradient(circle at 50% 40%, rgba(255, 222, 0, 0.16) 0%, transparent 65%), radial-gradient(circle at 10% 90%, rgba(255, 222, 0, 0.05) 0%, transparent 40%), radial-gradient(circle at 90% 90%, rgba(255, 222, 0, 0.05) 0%, transparent 40%)",
+          padding: "50px 60px",
           position: "relative",
           fontFamily: "sans-serif",
           color: "#FFFFFF",
+          overflow: "hidden",
         }}
       >
-        {/* Linha dourada superior */}
+        {/* Linha de borda superior dourada com brilho */}
         <div
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             right: 0,
-            height: "5px",
-            background: "linear-gradient(90deg, #FFDE00, #FFAE00)",
+            height: "6px",
+            background: "linear-gradient(90deg, #FFAE00, #FFDE00, #FFAE00)",
+            display: "flex",
           }}
         />
 
-        {/* Topo / Header */}
+        {/* Topo: Badge de Categoria */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            padding: "8px 24px",
+            borderRadius: "30px",
+            backgroundColor: "rgba(255, 222, 0, 0.12)",
+            border: "1px solid rgba(255, 222, 0, 0.35)",
+            fontSize: "13px",
+            fontWeight: 800,
+            color: "#FFDE00",
+            letterSpacing: "2px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "16px",
-            }}
-          >
-            {/* Ícone estilizado RenPlay */}
-            <div
+          <span>LAUNCHER OFICIAL DE VISUAL NOVELS</span>
+        </div>
+
+        {/* Centro: LOGO OFICIAL EM DESTAQUE MÁXIMO */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "24px",
+            marginTop: "10px",
+          }}
+        >
+          {logoSrc ? (
+            <img
+              src={logoSrc}
+              alt="RenPlay"
+              width="580"
+              height="194"
               style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "14px",
-                background: "#FFDE00",
+                width: "580px",
+                height: "194px",
+                objectFit: "contain",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#0C0D0F",
-                fontSize: "26px",
-                fontWeight: 900,
-                boxShadow: "0 0 25px rgba(255, 222, 0, 0.5)",
               }}
-            >
-              ▶
-            </div>
+            />
+          ) : (
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                fontSize: "36px",
+                fontSize: "76px",
                 fontWeight: 900,
-                letterSpacing: "-1px",
-                color: "#FFFFFF",
+                letterSpacing: "-2px",
+                display: "flex",
               }}
             >
               <span>REN</span>
               <span style={{ color: "#FFDE00" }}>PLAY</span>
             </div>
-          </div>
+          )}
 
           <div
             style={{
+              fontSize: "32px",
+              fontWeight: 800,
+              color: "#F5F3ED",
+              letterSpacing: "-0.5px",
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              padding: "8px 20px",
-              borderRadius: "30px",
-              backgroundColor: "rgba(255, 222, 0, 0.12)",
-              border: "1px solid rgba(255, 222, 0, 0.35)",
-              fontSize: "14px",
-              fontWeight: 700,
-              color: "#FFDE00",
-              letterSpacing: "1px",
             }}
           >
-            LAUNCHER OFICIAL
-          </div>
-        </div>
-
-        {/* Centro / Título e Descrição */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "20px",
-            maxWidth: "880px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              fontSize: "62px",
-              fontWeight: 900,
-              lineHeight: 1.1,
-              letterSpacing: "-2px",
-              color: "#FFFFFF",
-            }}
-          >
-            <span>Suas histórias. Seu universo.</span>
+            <span>Suas histórias.</span>
+            <span>Seu universo.</span>
             <span style={{ color: "#FFDE00" }}>Seu RenPlay.</span>
           </div>
 
           <div
             style={{
-              display: "flex",
-              fontSize: "22px",
-              lineHeight: 1.5,
+              fontSize: "19px",
               color: "#A1A1AA",
-              fontWeight: 400,
+              textAlign: "center",
+              maxWidth: "820px",
+              lineHeight: 1.4,
+              display: "flex",
             }}
           >
-            Descubra visual novels, organize sua biblioteca e aproveite o launcher oficial para Windows, Linux, macOS e Android com saves na nuvem.
+            Descubra jogos e visual novels, organize sua biblioteca e jogue no PC e Android com sincronização de saves na nuvem.
           </div>
         </div>
 
-        {/* Rodapé / Badges */}
+        {/* Rodapé: Recursos e Domínio Oficial */}
         <div
           style={{
+            width: "100%",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-            paddingTop: "28px",
+            paddingTop: "22px",
           }}
         >
           <div
             style={{
               display: "flex",
-              gap: "16px",
+              gap: "14px",
             }}
           >
             <div
@@ -166,7 +163,7 @@ export default async function Image() {
                 borderRadius: "20px",
                 backgroundColor: "rgba(255, 255, 255, 0.05)",
                 border: "1px solid rgba(255, 255, 255, 0.12)",
-                fontSize: "15px",
+                fontSize: "14px",
                 fontWeight: 600,
                 color: "#E4E4E7",
               }}
@@ -181,7 +178,7 @@ export default async function Image() {
                 borderRadius: "20px",
                 backgroundColor: "rgba(255, 255, 255, 0.05)",
                 border: "1px solid rgba(255, 255, 255, 0.12)",
-                fontSize: "15px",
+                fontSize: "14px",
                 fontWeight: 600,
                 color: "#E4E4E7",
               }}
@@ -196,7 +193,7 @@ export default async function Image() {
                 borderRadius: "20px",
                 backgroundColor: "rgba(255, 255, 255, 0.05)",
                 border: "1px solid rgba(255, 255, 255, 0.12)",
-                fontSize: "15px",
+                fontSize: "14px",
                 fontWeight: 600,
                 color: "#E4E4E7",
               }}
@@ -208,12 +205,18 @@ export default async function Image() {
           <div
             style={{
               display: "flex",
-              fontSize: "16px",
-              fontWeight: 700,
-              color: "#71717A",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 20px",
+              borderRadius: "20px",
+              backgroundColor: "rgba(255, 222, 0, 0.12)",
+              border: "1px solid rgba(255, 222, 0, 0.35)",
+              fontSize: "15px",
+              fontWeight: 800,
+              color: "#FFDE00",
             }}
           >
-            renplay.com.br
+            renplay.site
           </div>
         </div>
       </div>
