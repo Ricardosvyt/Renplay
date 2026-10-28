@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
           SELECT g.id, g.public_id::text AS public_id, g.name, g.status, g.metadata, g.created_at, g.updated_at,
             reviews.rating_average,
             COALESCE(reviews.review_count, 0)::int AS review_count,
-            COALESCE(downloads.download_count, 0)::int AS download_count
+            COALESCE(downloads.download_count, 0)::int AS download_count,
+            COALESCE(translations.available_translations, '[]'::jsonb) AS available_translations
           FROM rp_games g
           LEFT JOIN (
             SELECT game_id, ROUND(AVG(rating)::numeric, 1) AS rating_average,
@@ -55,6 +56,18 @@ export async function GET(request: NextRequest) {
             FROM rp_downloads
             GROUP BY game_id
           ) downloads ON downloads.game_id = g.id
+          LEFT JOIN (
+            SELECT t.game_id, jsonb_agg(jsonb_build_object(
+              'id', t.id,
+              'language', t.language,
+              'version', t.version,
+              'compatibleVersions', t.compatible_versions
+            ) ORDER BY t.created_at DESC) AS available_translations
+            FROM rp_translations t
+            JOIN rp_assets a ON a.id = t.asset_id
+            WHERE t.status = 'PUBLISHED' AND t.distribution_authorized = true AND a.status = 'VERIFIED'
+            GROUP BY t.game_id
+          ) translations ON translations.game_id = g.id
           ${canManage ? "WHERE g.status <> 'ARCHIVED'" : "WHERE g.status = 'PUBLISHED'"}
           ORDER BY COALESCE((g.metadata->>'featuredOrder')::int, 0) DESC, g.updated_at DESC
         `;
@@ -85,6 +98,7 @@ export async function GET(request: NextRequest) {
               reviewCount: Number(row.review_count ?? meta.reviewCount ?? 0),
               commentsCount: Number(row.review_count ?? meta.commentsCount ?? 0),
               downloads: Number(row.download_count ?? meta.downloads ?? 0),
+              availableTranslations: Array.isArray(row.available_translations) ? row.available_translations : [],
             };
           });
 

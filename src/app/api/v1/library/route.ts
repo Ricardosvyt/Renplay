@@ -19,8 +19,19 @@ export async function GET(request: Request) {
       metadata: Record<string, unknown>;
       favorite: boolean;
       added_at: string;
+      available_translations: Array<{ id: string; language: string; version: string; compatibleVersions: string[] }>;
     }>(
-      `SELECT g.public_id::text AS id, g.name, g.status, g.metadata, l.favorite, l.added_at
+      `SELECT g.public_id::text AS id, g.name, g.status, g.metadata, l.favorite, l.added_at,
+              COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                'id', t.id,
+                'language', t.language,
+                'version', t.version,
+                'compatibleVersions', t.compatible_versions
+              ) ORDER BY t.created_at DESC)
+              FROM rp_translations t
+              JOIN rp_assets a ON a.id = t.asset_id
+              WHERE t.game_id = g.id AND t.status = 'PUBLISHED'
+                AND t.distribution_authorized = true AND a.status = 'VERIFIED'), '[]'::jsonb) AS available_translations
          FROM rp_library l
          JOIN rp_games g ON g.id = l.game_id
         WHERE l.user_id = $1
@@ -34,6 +45,7 @@ export async function GET(request: Request) {
       status: row.status,
       favorite: row.favorite,
       addedAt: row.added_at,
+      availableTranslations: row.available_translations || [],
       ...row.metadata
     }));
 

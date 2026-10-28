@@ -23,6 +23,13 @@ export interface GameUpdate {
   translation?: string;
 }
 
+export interface AvailableTranslation {
+  id: string;
+  language: string;
+  version: string;
+  compatibleVersions: string[];
+}
+
 export interface SystemRequirements {
   os?: string;
   cpu?: string;
@@ -49,6 +56,7 @@ export interface Game {
   translationStatus?: string;
   translatedBy?: string;
   translationNotes?: string;
+  availableTranslations?: AvailableTranslation[];
   adult?: boolean;
   gameIcon?: string;
   coverImage?: string;

@@ -6,6 +6,17 @@ test('launcher catalog query aggregates visible reviews and recorded downloads p
   assert.match(launcherCatalogQuery, /FROM rp_reviews[\s\S]*?WHERE hidden = false[\s\S]*?GROUP BY game_id/i);
   assert.match(launcherCatalogQuery, /FROM rp_downloads[\s\S]*?GROUP BY game_id/i);
   assert.match(launcherCatalogQuery, /LEFT JOIN/i);
+  assert.match(launcherCatalogQuery, /FROM rp_translations[\s\S]*?status = 'PUBLISHED'/i);
+});
+
+test('launcher catalog exposes only published translation summaries', () => {
+  const mapped = mapLauncherCatalogGame({
+    id: 'translated-game', name: 'Translated game', created_at: null, updated_at: null,
+    metadata: {}, rating_average: null, review_count: 0, download_count: 0,
+    available_translations: [{ id: 'pt-id', language: 'Português', version: '1.0', compatibleVersions: ['1.0'] }]
+  });
+  assert.equal(mapped.availableTranslations.length, 1);
+  assert.equal(mapped.availableTranslations[0].language, 'Português');
 });
 
 test('launcher catalog maps aggregate values to the fields consumed by the renderer', () => {

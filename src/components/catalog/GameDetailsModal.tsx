@@ -175,6 +175,22 @@ export function GameDetailsModal({
             </div>
           </div>
 
+          {game.availableTranslations && game.availableTranslations.length > 0 && (
+            <div className="space-y-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <div>
+                <h4 className="text-sm font-black uppercase tracking-wider text-emerald-400">Idiomas disponíveis no launcher</h4>
+                <p className="mt-1 text-xs text-zinc-400">O launcher baixa a tradução compatível e seleciona automaticamente o idioma do Windows.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {game.availableTranslations.map((translation) => (
+                  <span key={translation.id} className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300">
+                    {translation.language}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Sinopse e História */}
           <div className="space-y-3">
             <h4 className="font-bold text-sm uppercase tracking-wider text-zinc-400">Sinopse da História</h4>
