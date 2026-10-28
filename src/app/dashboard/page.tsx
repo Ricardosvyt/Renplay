@@ -20,6 +20,8 @@ export default function DashboardPage() {
       ? "saves"
       : pathname === "/dashboard/usuarios"
       ? "users"
+      : pathname === "/dashboard/publicidade"
+      ? "advertising"
       : pathname === "/dashboard/configuracoes"
       ? "settings"
       : "overview";

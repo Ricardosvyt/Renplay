@@ -27,6 +27,10 @@ export function canManageSettings(user: AuthUser | null | undefined): boolean {
   return hasAnyRole(user, ADMIN_ONLY_ROLES);
 }
 
+export function canManageAdvertising(user: AuthUser | null | undefined): boolean {
+  return hasAnyRole(user, ADMIN_ONLY_ROLES);
+}
+
 export function canManageGames(user: AuthUser | null | undefined): boolean {
   return hasAnyRole(user, DEV_ROLES);
 }
@@ -51,7 +55,7 @@ export function evaluateRouteAccess(
   }
 
   // Admin settings: only ADMIN
-  if (pathname === "/dashboard/configuracoes" || pathname.startsWith("/dashboard/configuracoes/")) {
+  if (pathname === "/dashboard/configuracoes" || pathname.startsWith("/dashboard/configuracoes/") || pathname === "/dashboard/publicidade" || pathname.startsWith("/dashboard/publicidade/")) {
     if (!canManageSettings(user)) {
       return { allowed: false, redirectUrl: "/dashboard", reason: "FORBIDDEN" };
     }

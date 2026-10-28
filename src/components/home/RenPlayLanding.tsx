@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { LauncherInfo } from "@/types/game";
 
 import styles from "./RenPlayLanding.module.css";
+import { SiteAdBanner } from "./SiteAdBanner";
 
 type Platform = "windows" | "linux" | "macos" | "android";
 type Props = { launcherInfo: LauncherInfo };
@@ -129,6 +130,7 @@ export function RenPlayLanding(props: Props) {
       </section>
 
       <div className={styles.promiseStrip}><span><Glyph name="library"/>Sua biblioteca organizada</span><span><Glyph name="spark"/>Histórias para descobrir</span><span><Glyph name="cloud"/>Seus saves, no seu controle</span></div>
+      <SiteAdBanner />
 
       <section id="experience" className={styles.experience}>
         <div className={styles.sectionTitle}><span className={styles.eyebrow}>FEITO PARA QUEM VIVE HISTÓRIAS</span><h2>Menos procura.<br/><em>Mais um capítulo.</em></h2><p>O RenPlay aproxima você dos seus jogos, do primeiro download até a próxima escolha.</p></div>

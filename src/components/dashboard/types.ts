@@ -1,4 +1,4 @@
-export type DashboardTab = "overview" | "games" | "saves" | "users" | "settings";
+export type DashboardTab = "overview" | "games" | "saves" | "users" | "advertising" | "settings";
 
 export interface GameItem {
   id: string;

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "check": "tsc --noEmit",
-    "test": "node --test scripts/test-registration.cjs scripts/test-security.cjs scripts/test-password-recovery.cjs scripts/test-login-security.cjs scripts/test-client-ip.cjs scripts/test-library-sync.cjs scripts/test-storefront-data.cjs scripts/test-launcher-catalog-metrics.cjs scripts/test-admin-game-management.cjs scripts/test-cloud-saves.cjs scripts/test-subscription-policy.cjs scripts/test-browser-save-zip.cjs scripts/test-subscription-complete.cjs",
+    "migrate:advertising": "node --env-file=.env scripts/apply-advertising-migration.cjs",
+    "test": "node --test scripts/test-advertising.cjs scripts/test-registration.cjs scripts/test-security.cjs scripts/test-password-recovery.cjs scripts/test-login-security.cjs scripts/test-client-ip.cjs scripts/test-library-sync.cjs scripts/test-storefront-data.cjs scripts/test-launcher-catalog-metrics.cjs scripts/test-admin-game-management.cjs scripts/test-cloud-saves.cjs scripts/test-subscription-policy.cjs scripts/test-browser-save-zip.cjs scripts/test-subscription-complete.cjs",
     "test:timing": "node --test scripts/test-timing-benchmark.cjs",
     "test:concurrency": "node --env-file=.env --test scripts/test-concurrency-integration.cjs",
     "test:all": "node --env-file=.env --test scripts/test-registration.cjs scripts/test-security.cjs scripts/test-password-recovery.cjs scripts/test-login-security.cjs scripts/test-client-ip.cjs scripts/test-library-sync.cjs scripts/test-timing-benchmark.cjs scripts/test-concurrency-integration.cjs"

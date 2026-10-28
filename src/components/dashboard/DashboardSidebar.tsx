@@ -63,6 +63,16 @@ export function DashboardSidebar({ activeTab, gamesCount, usersCount }: Dashboar
       )
     },
     {
+      id: "advertising" as DashboardTab,
+      label: "Publicidade",
+      href: "/dashboard/publicidade",
+      icon: (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 11v2a2 2 0 0 0 2 2h2l4 4V5L7 9H5a2 2 0 0 0-2 2Z"/><path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12"/>
+        </svg>
+      )
+    },
+    {
       id: "settings" as DashboardTab,
       label: "Configurações",
       href: "/dashboard/configuracoes",
