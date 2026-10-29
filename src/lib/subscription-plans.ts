@@ -1,8 +1,11 @@
-export const VIP_PLANS = {
+export type VipPlanLevel = 1 | 2 | 3;
+export type VipPlan = { name: string; monthlyPriceBRL: number; maxSaves: number; maxBytes: number };
+
+export const VIP_PLANS: Record<VipPlanLevel, VipPlan> = {
   1: { name: "RenPlay Plus", monthlyPriceBRL: 14.90, maxSaves: 50, maxBytes: 150_000_000 },
   2: { name: "RenPlay Pro", monthlyPriceBRL: 24.90, maxSaves: 150, maxBytes: 500_000_000 },
   3: { name: "RenPlay Ultra", monthlyPriceBRL: 39.90, maxSaves: 400, maxBytes: 1_500_000_000 }
-} as const;
+};
 
 export type VipLevel = 0 | 1 | 2 | 3;
 export type SubscriptionStatus = "NONE" | "ACTIVE" | "CANCELED_BUT_ACTIVE" | "GRACE_PERIOD" | "DELETION_PENDING" | "DELETED" | "LEGACY_REVIEW";

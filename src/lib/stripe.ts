@@ -1,10 +1,12 @@
 import Stripe from "stripe";
-import { VIP_PLANS } from "@/lib/subscriptions";
+import { getVipPlans, getVipStoreSettings } from "@/lib/vip-store";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
 
 export const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, {
+      // Mantém a versão já usada em produção; a migração de API Stripe é uma mudança separada.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       apiVersion: "2025-02-24.acacia" as any,
       appInfo: {
         name: "RenPlay VIP Subscriptions",
@@ -28,7 +30,9 @@ export async function createStripeCheckoutSession({
   vipLevel,
   origin,
 }: CreateCheckoutSessionParams) {
-  const plan = VIP_PLANS[vipLevel];
+  const settings = await getVipStoreSettings();
+  if (!settings.enabled) throw new Error("A VIP Store está temporariamente indisponível.");
+  const plan = (await getVipPlans())[vipLevel];
   if (!plan) throw new Error("Plano VIP inválido.");
 
   if (!stripe) {

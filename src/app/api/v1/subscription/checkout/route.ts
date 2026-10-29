@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { activateOrRenewSubscription, VIP_PLANS, VipLevel } from "@/lib/subscriptions";
+import { activateOrRenewSubscription } from "@/lib/subscriptions";
+import { getVipPlans, getVipStoreSettings } from "@/lib/vip-store";
 
 export async function POST(request: Request) {
   const user = await getSessionUser(request);
@@ -29,7 +30,11 @@ export async function POST(request: Request) {
     }
 
     const vipLevel = rawLevel as 1 | 2 | 3;
-    const plan = VIP_PLANS[vipLevel];
+    const storeSettings = await getVipStoreSettings();
+    if (!storeSettings.enabled) {
+      return NextResponse.json({ error: { code: "STORE_DISABLED", message: "A VIP Store está temporariamente indisponível." } }, { status: 503 });
+    }
+    const plan = (await getVipPlans())[vipLevel];
     const method = body.paymentMethod || body.payment_method || "pix";
     const ref = body.reference || `gw_${method}_${user.id}_${Date.now()}`;
 

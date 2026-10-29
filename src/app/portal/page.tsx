@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { VIP_PLANS } from "@/lib/subscription-plans";
 
 type UserProfile = {
@@ -24,6 +25,7 @@ type SubscriptionView = {
 };
 
 export default function PlansCheckoutPage() {
+  const router = useRouter();
   const [user, setUser] = useState<UserProfile>({
     displayName: "Jogador RenPlay",
     username: "membro",
@@ -33,7 +35,8 @@ export default function PlansCheckoutPage() {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionView | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [plans, setPlans] = useState(VIP_PLANS);
+  const [storeEnabled, setStoreEnabled] = useState(true);
 
   // Estados de checkout Stripe
   const [processingPlan, setProcessingPlan] = useState<number | null>(null);
@@ -63,6 +66,13 @@ export default function PlansCheckoutPage() {
       }
 
       try {
+        const plansRes = await fetch("/api/v1/subscription/plans", { cache: "no-store" });
+        if (plansRes.ok) {
+          const plansData = await plansRes.json();
+          if (plansData.plans) setPlans(plansData.plans);
+          setStoreEnabled(plansData.enabled !== false);
+        }
+
         const meRes = await fetch("/api/v1/auth/me");
         if (meRes.ok) {
           const meData = await meRes.json();
@@ -79,12 +89,12 @@ export default function PlansCheckoutPage() {
 
         const subRes = await fetch("/api/v1/subscription", { cache: "no-store" });
         if (subRes.ok) {
-          setSubscription(await subRes.json());
+          const subData = await subRes.json();
+          setSubscription(subData.subscription ?? null);
+          if (subData.plans) setPlans(subData.plans);
         }
       } catch (err) {
         console.warn("[Plans] Erro ao carregar dados:", err);
-      } finally {
-        setLoading(false);
       }
     }
 
@@ -106,7 +116,7 @@ export default function PlansCheckoutPage() {
 
       if (!res.ok) {
         if (res.status === 401) {
-          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+          router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
           return;
         }
         throw new Error(data.error?.message || "Falha ao iniciar checkout Stripe.");
@@ -148,7 +158,11 @@ export default function PlansCheckoutPage() {
 
       // Recarrega status da assinatura
       const subRes = await fetch("/api/v1/subscription", { cache: "no-store" });
-      if (subRes.ok) setSubscription(await subRes.json());
+      if (subRes.ok) {
+        const subData = await subRes.json();
+        setSubscription(subData.subscription ?? null);
+        if (subData.plans) setPlans(subData.plans);
+      }
     } catch (err: unknown) {
       setCheckoutError(err instanceof Error ? err.message : "Erro ao ativar.");
     } finally {
@@ -158,6 +172,7 @@ export default function PlansCheckoutPage() {
 
   const isCurrentVip = Boolean(subscription?.vipLevel && subscription.status === "ACTIVE");
   const isGrace = subscription?.status === "GRACE_PERIOD";
+  const formatPrice = (value: number) => value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="min-h-screen bg-[#07090e] text-zinc-100 font-sans selection:bg-[#ffd400] selection:text-black">
@@ -262,12 +277,12 @@ export default function PlansCheckoutPage() {
                 <span className="text-xs font-black tracking-widest uppercase text-zinc-400">Plano Inicial</span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">50 Saves</span>
               </div>
-              <h3 className="text-xl font-black text-white">{VIP_PLANS[1].name}</h3>
+              <h3 className="text-xl font-black text-white">{plans[1].name}</h3>
               <p className="text-xs text-zinc-400 mt-1">Ideal para quem joga poucas histórias simultaneamente.</p>
 
               <div className="my-6">
                 <span className="text-xs text-zinc-400">R$ </span>
-                <strong className="text-3xl font-black text-white">14,90</strong>
+                <strong className="text-3xl font-black text-white">{formatPrice(plans[1].monthlyPriceBRL)}</strong>
                 <span className="text-xs text-zinc-400"> / mês</span>
               </div>
 
@@ -298,11 +313,11 @@ export default function PlansCheckoutPage() {
             <div className="pt-6 mt-6 border-t border-zinc-800/80">
               <button
                 type="button"
-                disabled={processingPlan === 1}
+                disabled={processingPlan === 1 || !storeEnabled}
                 onClick={() => handleSubscribeStripe(1)}
                 className="w-full py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-all border border-zinc-700 disabled:opacity-50"
               >
-                {processingPlan === 1 ? "Iniciando Stripe..." : "Assinar Plus via Stripe"}
+                {!storeEnabled ? "Loja temporariamente fechada" : processingPlan === 1 ? "Iniciando Stripe..." : "Assinar Plus via Stripe"}
               </button>
             </div>
           </div>
@@ -318,12 +333,12 @@ export default function PlansCheckoutPage() {
                 <span className="text-xs font-black tracking-widest uppercase text-[#ffd400]">Recomendado</span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-400/20 text-[#ffd400] border border-amber-400/30">150 Saves</span>
               </div>
-              <h3 className="text-2xl font-black text-white">{VIP_PLANS[2].name}</h3>
+              <h3 className="text-2xl font-black text-white">{plans[2].name}</h3>
               <p className="text-xs text-zinc-400 mt-1">A escolha ideal para jogadores frequentes de visual novels.</p>
 
               <div className="my-6">
                 <span className="text-xs text-zinc-400">R$ </span>
-                <strong className="text-4xl font-black text-[#ffd400]">24,90</strong>
+                <strong className="text-4xl font-black text-[#ffd400]">{formatPrice(plans[2].monthlyPriceBRL)}</strong>
                 <span className="text-xs text-zinc-400"> / mês</span>
               </div>
 
@@ -354,11 +369,11 @@ export default function PlansCheckoutPage() {
             <div className="pt-6 mt-6 border-t border-zinc-800/80">
               <button
                 type="button"
-                disabled={processingPlan === 2}
+                disabled={processingPlan === 2 || !storeEnabled}
                 onClick={() => handleSubscribeStripe(2)}
                 className="w-full py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-[#ffd400] via-yellow-300 to-amber-400 text-black hover:opacity-95 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
               >
-                {processingPlan === 2 ? "Iniciando Stripe..." : "Assinar Pro via Stripe"}
+                {!storeEnabled ? "Loja temporariamente fechada" : processingPlan === 2 ? "Iniciando Stripe..." : "Assinar Pro via Stripe"}
               </button>
             </div>
           </div>
@@ -370,12 +385,12 @@ export default function PlansCheckoutPage() {
                 <span className="text-xs font-black tracking-widest uppercase text-zinc-400">Poder Total</span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">400 Saves</span>
               </div>
-              <h3 className="text-xl font-black text-white">{VIP_PLANS[3].name}</h3>
+              <h3 className="text-xl font-black text-white">{plans[3].name}</h3>
               <p className="text-xs text-zinc-400 mt-1">Para colecionadores e jogadores que exploram dezenas de rotas.</p>
 
               <div className="my-6">
                 <span className="text-xs text-zinc-400">R$ </span>
-                <strong className="text-3xl font-black text-white">39,90</strong>
+                <strong className="text-3xl font-black text-white">{formatPrice(plans[3].monthlyPriceBRL)}</strong>
                 <span className="text-xs text-zinc-400"> / mês</span>
               </div>
 
@@ -390,7 +405,7 @@ export default function PlansCheckoutPage() {
                 </div>
                 <div className="flex items-center gap-2.5">
                   <span className="text-amber-400 font-bold">✓</span>
-                  <span>Slots ilimitados por jogo Ren'Py</span>
+                  <span>Slots ilimitados por jogo Ren&apos;Py</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <span className="text-amber-400 font-bold">✓</span>
@@ -406,11 +421,11 @@ export default function PlansCheckoutPage() {
             <div className="pt-6 mt-6 border-t border-zinc-800/80">
               <button
                 type="button"
-                disabled={processingPlan === 3}
+                disabled={processingPlan === 3 || !storeEnabled}
                 onClick={() => handleSubscribeStripe(3)}
                 className="w-full py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-all border border-zinc-700 disabled:opacity-50"
               >
-                {processingPlan === 3 ? "Iniciando Stripe..." : "Assinar Ultra via Stripe"}
+                {!storeEnabled ? "Loja temporariamente fechada" : processingPlan === 3 ? "Iniciando Stripe..." : "Assinar Ultra via Stripe"}
               </button>
             </div>
           </div>
