@@ -4,8 +4,8 @@ import { DashboardTab } from "./types";
 
 interface DashboardSidebarProps {
   activeTab: DashboardTab;
-  gamesCount: number;
-  usersCount: number;
+  gamesCount?: number;
+  usersCount?: number;
 }
 
 export function DashboardSidebar({ activeTab, gamesCount, usersCount }: DashboardSidebarProps) {
@@ -86,17 +86,17 @@ export function DashboardSidebar({ activeTab, gamesCount, usersCount }: Dashboar
   ];
 
   return (
-    <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-[#29292F] p-5 shrink-0 space-y-6 bg-[#0D0E14]/70">
+    <aside className="w-full shrink-0 border-b border-[#29292F] bg-[#0D0E14]/80 p-3 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-64 lg:border-b-0 lg:border-r lg:p-5">
       <div className="space-y-1">
-        <span className="text-[10px] font-black uppercase tracking-widest text-[#FFDE00] px-3">
+        <span className="hidden px-3 text-[10px] font-black uppercase tracking-widest text-[#FFDE00] lg:block">
           NAVEGAÇÃO
         </span>
-        <nav className="space-y-1 pt-1">
+        <nav className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-1 lg:overflow-visible lg:pb-0 lg:pt-2">
           {navItems.map((tab) => (
             <Link
               key={tab.id}
               href={tab.href}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex min-h-10 shrink-0 items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all lg:w-full ${
                 activeTab === tab.id
                   ? "bg-[#FFDE00] text-black font-black shadow-md shadow-amber-500/10"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
@@ -120,7 +120,7 @@ export function DashboardSidebar({ activeTab, gamesCount, usersCount }: Dashboar
         </nav>
       </div>
 
-      <div className="p-4 rounded-2xl bg-[#12141D] border border-[#29292F] space-y-2">
+      <div className="mt-6 hidden space-y-2 rounded-2xl border border-[#29292F] bg-[#12141D] p-4 lg:block">
         <div className="flex items-center justify-between text-xs font-bold text-zinc-300">
           <span>Status dos Servidores</span>
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

@@ -2,6 +2,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { evaluateRouteAccess } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 
+export const instant = false;
+
 export default async function UsuariosLayout({
   children,
 }: {

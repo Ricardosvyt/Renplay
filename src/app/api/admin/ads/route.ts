@@ -7,15 +7,18 @@ type CampaignBody = { name?:string; advertiserName?:string; title?:string; descr
 export async function GET(request: Request) {
   const auth=await requireAdvertisingAdmin(request); if(auth.response)return auth.response; const db=getDb();
   try {
-    const [campaigns,placements,totals,daily,top]=await Promise.all([
-      db.query(`SELECT c.*,cr.id creative_id,cr.title,cr.description,cr.image_url,cr.image_object_key,cr.destination_url,cr.creative_type,COALESCE(array_agg(DISTINCT p.code) FILTER(WHERE p.code IS NOT NULL),'{}') placements,count(DISTINCT e.id) FILTER(WHERE e.event_type='IMPRESSION')::int impressions,count(DISTINCT e.id) FILTER(WHERE e.event_type='CLICK')::int clicks FROM rp_ad_campaigns c JOIN rp_ad_creatives cr ON cr.campaign_id=c.id LEFT JOIN rp_ad_campaign_placements cp ON cp.campaign_id=c.id LEFT JOIN rp_ad_placements p ON p.id=cp.placement_id LEFT JOIN rp_ad_events e ON e.campaign_id=c.id GROUP BY c.id,cr.id ORDER BY c.updated_at DESC`),
-      db.query("SELECT id,code,name,platform,enabled FROM rp_ad_placements ORDER BY name"),
-      db.query(`SELECT count(*)::int campaigns,count(*) FILTER(WHERE status='ACTIVE')::int active,count(*) FILTER(WHERE status='PAUSED')::int paused,count(*) FILTER(WHERE status='SCHEDULED')::int scheduled,(SELECT count(*) FROM rp_ad_events WHERE event_type='IMPRESSION')::int impressions,(SELECT count(*) FROM rp_ad_events WHERE event_type='CLICK')::int clicks FROM rp_ad_campaigns`),
-      db.query(`SELECT date_trunc('day',event_time)::date AS event_day,count(*) FILTER(WHERE event_type='IMPRESSION')::int impressions,count(*) FILTER(WHERE event_type='CLICK')::int clicks FROM rp_ad_events WHERE event_time>=now()-interval '30 days' GROUP BY 1 ORDER BY 1`),
-      db.query(`SELECT c.id,c.name,count(e.id) FILTER(WHERE e.event_type='IMPRESSION')::int impressions,count(e.id) FILTER(WHERE e.event_type='CLICK')::int clicks FROM rp_ad_campaigns c LEFT JOIN rp_ad_events e ON e.campaign_id=c.id GROUP BY c.id ORDER BY impressions DESC,clicks DESC LIMIT 10`)
-    ]);
-    const summary=totals.rows[0]||{},impressions=Number(summary.impressions||0),clicks=Number(summary.clicks||0);
-    return NextResponse.json({campaigns:campaigns.rows,placements:placements.rows,overview:{...summary,impressions,clicks,ctr:impressions?clicks/impressions*100:0},daily:daily.rows.map(row=>({day:row.event_day,impressions:row.impressions,clicks:row.clicks})),top:top.rows},{headers:{"Cache-Control":"no-store"}});
+    const client=await db.connect();
+    try {
+      const campaigns=await client.query(`SELECT c.*,cr.id creative_id,cr.title,cr.description,cr.image_url,cr.image_object_key,cr.destination_url,cr.creative_type,COALESCE(array_agg(DISTINCT p.code) FILTER(WHERE p.code IS NOT NULL),'{}') placements,count(DISTINCT e.id) FILTER(WHERE e.event_type='IMPRESSION')::int impressions,count(DISTINCT e.id) FILTER(WHERE e.event_type='CLICK')::int clicks FROM rp_ad_campaigns c JOIN rp_ad_creatives cr ON cr.campaign_id=c.id LEFT JOIN rp_ad_campaign_placements cp ON cp.campaign_id=c.id LEFT JOIN rp_ad_placements p ON p.id=cp.placement_id LEFT JOIN rp_ad_events e ON e.campaign_id=c.id GROUP BY c.id,cr.id ORDER BY c.updated_at DESC`);
+      const placements=await client.query("SELECT id,code,name,platform,enabled FROM rp_ad_placements ORDER BY name");
+      const totals=await client.query(`SELECT count(*)::int campaigns,count(*) FILTER(WHERE status='ACTIVE')::int active,count(*) FILTER(WHERE status='PAUSED')::int paused,count(*) FILTER(WHERE status='SCHEDULED')::int scheduled,(SELECT count(*) FROM rp_ad_events WHERE event_type='IMPRESSION')::int impressions,(SELECT count(*) FROM rp_ad_events WHERE event_type='CLICK')::int clicks FROM rp_ad_campaigns`);
+      const daily=await client.query(`SELECT date_trunc('day',event_time)::date AS event_day,count(*) FILTER(WHERE event_type='IMPRESSION')::int impressions,count(*) FILTER(WHERE event_type='CLICK')::int clicks FROM rp_ad_events WHERE event_time>=now()-interval '30 days' GROUP BY 1 ORDER BY 1`);
+      const top=await client.query(`SELECT c.id,c.name,count(e.id) FILTER(WHERE e.event_type='IMPRESSION')::int impressions,count(e.id) FILTER(WHERE e.event_type='CLICK')::int clicks FROM rp_ad_campaigns c LEFT JOIN rp_ad_events e ON e.campaign_id=c.id GROUP BY c.id ORDER BY impressions DESC,clicks DESC LIMIT 10`);
+      const summary=totals.rows[0]||{},impressions=Number(summary.impressions||0),clicks=Number(summary.clicks||0);
+      return NextResponse.json({campaigns:campaigns.rows,placements:placements.rows,overview:{...summary,impressions,clicks,ctr:impressions?clicks/impressions*100:0},daily:daily.rows.map(row=>({day:row.event_day,impressions:row.impressions,clicks:row.clicks})),top:top.rows},{headers:{"Cache-Control":"no-store"}});
+    } finally {
+      client.release();
+    }
   } catch(error) {
     console.error("Falha ao carregar publicidade:",error instanceof Error?error.message:"erro desconhecido");
     return NextResponse.json({error:"Não foi possível carregar os dados de publicidade."},{status:500,headers:{"Cache-Control":"no-store"}});

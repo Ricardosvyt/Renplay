@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DashboardTab, GameItem, UserItem } from "@/components/dashboard/types";
-import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardOverviewTab } from "@/components/dashboard/DashboardOverviewTab";
 import { DashboardGamesTab } from "@/components/dashboard/DashboardGamesTab";
 import DashboardUsersTab from "@/components/dashboard/DashboardUsersTab";
@@ -156,7 +154,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090A0F] text-[#F5F5F5] font-sans flex flex-col justify-between">
+    <div className="space-y-6">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl bg-[#FFDE00] text-black font-black text-xs shadow-2xl animate-fade-in-up">
@@ -164,81 +162,33 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* HEADER PRINCIPAL */}
-      <header className="border-b border-[#29292F] bg-[#090A0F]/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-[1500px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2 group">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/Logo.png" alt="RenPlay" className="h-8 w-auto object-contain" />
-              <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-[#FFDE00]/15 text-[#FFDE00] border border-[#FFDE00]/30">
-                PAINEL DE CONTROLE
-              </span>
-            </Link>
-          </div>
+      {activeTab === "overview" && (
+        <DashboardOverviewTab games={games} users={users} />
+      )}
 
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="text-xs font-bold text-zinc-400 hover:text-[#FFDE00] transition-colors"
-            >
-              ← Ir ao Site
-            </Link>
-            <Link
-              href="/portal"
-              className="text-xs font-bold px-3 py-2 rounded-lg border border-[#29292F] bg-[#12141D] hover:border-[#FFDE00]/60 text-zinc-300 transition-colors"
-            >
-              Minha Conta
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* CORPO DO DASHBOARD */}
-      <div className="flex-1 max-w-[1500px] w-full mx-auto flex flex-col md:flex-row">
-        {/* SIDEBAR MODULAR */}
-        <DashboardSidebar
-          activeTab={activeTab}
-          gamesCount={games.length}
-          usersCount={users.length}
+      {activeTab === "games" && (
+        <DashboardGamesTab
+          games={games}
+          searchQuery={searchQuery}
+          statusFilter={statusFilter}
+          onSearchChange={setSearchQuery}
+          onStatusFilterChange={setStatusFilter}
+          onUpdateStatus={handleUpdateStatus}
+          onDeleteGame={handleDeleteGame}
+          onBatchUpdateStatus={handleBatchUpdateStatus}
+          onBatchDelete={handleBatchDelete}
         />
+      )}
 
-        {/* ÁREA DE CONTEÚDO MODULAR */}
-        <main className="flex-1 p-6 md:p-8 bg-[#090A0F]">
-          {activeTab === "overview" && (
-            <DashboardOverviewTab games={games} users={users} />
-          )}
+      {activeTab === "users" && (
+        <DashboardUsersTab users={users} />
+      )}
 
-          {activeTab === "games" && (
-            <DashboardGamesTab
-              games={games}
-              searchQuery={searchQuery}
-              statusFilter={statusFilter}
-              onSearchChange={setSearchQuery}
-              onStatusFilterChange={setStatusFilter}
-              onUpdateStatus={handleUpdateStatus}
-              onDeleteGame={handleDeleteGame}
-              onBatchUpdateStatus={handleBatchUpdateStatus}
-              onBatchDelete={handleBatchDelete}
-            />
-          )}
+      {activeTab === "saves" && <DashboardSavesTab />}
 
-          {activeTab === "users" && (
-            <DashboardUsersTab users={users} />
-          )}
-
-          {activeTab === "saves" && <DashboardSavesTab />}
-
-          {activeTab === "settings" && (
-            <DashboardSettingsTab onSave={showToast} />
-          )}
-        </main>
-      </div>
-
-      {/* FOOTER */}
-      <footer className="py-4 text-center text-[11px] font-semibold border-t border-[#29292F] bg-[#090A0F] text-zinc-500">
-        © 2026 RenPlay Studios. Painel de Controle e Distribuição Oficial.
-      </footer>
+      {activeTab === "settings" && (
+        <DashboardSettingsTab onSave={showToast} />
+      )}
     </div>
   );
 }
